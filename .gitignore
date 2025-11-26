@@ -4,3 +4,6 @@ __pycache__/
 venv/
 .idea/
 .DS_Store
+booking_demo.db
+SQL_Demo.py
+practice.py
