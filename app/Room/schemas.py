@@ -1,8 +1,9 @@
 """
-Pydantic схема для модели Room (Комната).
+Pydantic схемы для модели Room (Комната).
 
-- RoomCreate: данные, которые приходят ОТ клиента при создании комнаты
-- RoomResponse: данные, которые мы отправляем ОБРАТНО клиенту после сохранения/загрузки комнаты
+- RoomCreate: данные от клиента при создании комнаты;
+- RoomUpdate: данные для обновления комнаты (частичное или полное обновление);
+- RoomRead: данные, которые мы возвращаем клиенту.
 """
 
 from decimal import Decimal
@@ -11,30 +12,54 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-class RoomCreate(BaseModel):
-    """
-    Этот класс описывает данные, которые мы ожидаем от клиента.
+class RoomBase(BaseModel):
+    """Общие поля, используемые в нескольких схемах."""
 
-    Важные моменты:
-    - id отсутствует, потому что база данных сгенерирует его автоматически.
-    - name, price_per_day и hotel_id обязательны для создания комнаты.
-    - descriptions, services, quality и image_id являются опциональными полями.
-    """
-
-    name: str = Field(..., max_length=128, description="Название комнаты")
-    descriptions: Optional[str] = Field(None, max_length=512, description="Описание комнаты")
-    price_per_day: Decimal = Field(..., gt=0, description="Стоимость за день, должна быть положительной")
-    services: Optional[dict] = Field(default_factory=dict, description="Услуги комнаты (JSON)")
-    quality: Optional[str] = Field(None, max_length=64, description="Качество комнаты")
-    hotel_id: int = Field(..., gt=0, description="ID отеля, к которому относится комната")
+    name: Optional[str] = Field(None, max_length=128, description="Название комнаты")
+    descriptions: Optional[str] = Field(
+        None, max_length=512, description="Описание комнаты"
+    )
+    price_per_day: Optional[Decimal] = Field(
+        None, gt=0, description="Стоимость за день, должна быть положительной"
+    )
+    services: Optional[dict] = Field(
+        default=None, description="Услуги комнаты (JSON формат)"
+    )
+    quality: Optional[str] = Field(
+        None, max_length=64, description="Качество/класс комнаты"
+    )
+    hotel_id: Optional[int] = Field(
+        None, gt=0, description="ID отеля, к которому относится комната"
+    )
     image_id: Optional[int] = Field(None, description="ID изображения комнаты")
 
 
-class RoomResponse(BaseModel):
+class RoomCreate(RoomBase):
     """
-    Этот класс используется, когда мы возвращаем данные комнаты клиенту.
+    Данные, которые мы ожидаем при создании комнаты.
+    Все обязательные поля помечены без значения по умолчанию.
+    """
 
-    Здесь мы включаем id комнаты, потому что он уже существует в базе данных.
+    name: str  # type: ignore[assignment]
+    price_per_day: Decimal  # type: ignore[assignment]
+    hotel_id: int  # type: ignore[assignment]
+    services: Optional[dict] = Field(
+        default_factory=dict, description="Услуги комнаты (JSON)"
+    )
+
+
+class RoomUpdate(RoomBase):
+    """
+    Данные для обновления комнаты.
+    Все поля опциональны, поэтому можно отправлять только изменяемые значения.
+    """
+
+    pass
+
+
+class RoomRead(BaseModel):
+    """
+    Схема, которую мы возвращаем клиенту.
     """
 
     id: int
@@ -47,7 +72,6 @@ class RoomResponse(BaseModel):
     image_id: Optional[int]
 
     class Config:
-        # Эта опция позволяет создавать схему напрямую из SQLAlchemy объекта Room.
         from_attributes = True
 
 

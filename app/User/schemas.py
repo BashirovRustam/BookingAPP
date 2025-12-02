@@ -1,42 +1,67 @@
 """
-Pydantic схема для модели User (Пользователь).
+Pydantic схемы для модели User (Пользователь).
 
 - UserCreate: данные, которые приходят ОТ клиента при создании пользователя
-- UserResponse: данные, которые мы отправляем ОБРАТНО клиенту после сохранения/загрузки пользователя
+- UserUpdate: данные для обновления пользователя
+- UserRead: данные, которые мы отправляем ОБРАТНО клиенту после сохранения/загрузки пользователя
 """
 
 from pydantic import BaseModel, EmailStr, Field
 
 
-class UserCreate(BaseModel):
-    """
-    Этот класс описывает данные, которые мы ожидаем от клиента.
+class UserBase(BaseModel):
+    """Общие поля пользователя, используемые в нескольких схемах."""
 
-    Важные моменты:
-    - id отсутствует, потому что база данных сгенерирует его автоматически.
-    - email, password, first_name и last_name обязательны для создания пользователя.
-    - email должен быть валидным email адресом и уникальным.
-    - password будет хешироваться перед сохранением в базу данных.
-    """
-
-    email: EmailStr = Field(
-        ...,
+    email: EmailStr | None = Field(
+        default=None,
         max_length=128,
         example="user@example.com",
         description="Email адрес пользователя",
     )
-    password: str = Field(
-        ..., min_length=8, description="Пароль пользователя (минимум 8 символов)"
+    first_name: str | None = Field(
+        default=None,
+        max_length=64,
+        description="Имя пользователя",
     )
-    first_name: str = Field(..., max_length=64, description="Имя пользователя")
-    last_name: str = Field(..., max_length=64, description="Фамилия пользователя")
+    last_name: str | None = Field(
+        default=None,
+        max_length=64,
+        description="Фамилия пользователя",
+    )
 
 
-class UserResponse(BaseModel):
+class UserCreate(UserBase):
     """
-    Этот класс используется, когда мы возвращаем данные пользователя клиенту.
+    Данные, которые мы ожидаем от клиента при создании пользователя.
+    """
 
-    Здесь мы включаем id пользователя, потому что он уже существует в базе данных.
+    email: EmailStr  # type: ignore[assignment]
+    password: str = Field(
+        ...,
+        min_length=8,
+        description="Пароль пользователя (минимум 8 символов)",
+    )
+    first_name: str  # type: ignore[assignment]
+    last_name: str  # type: ignore[assignment]
+
+
+class UserUpdate(UserBase):
+    """
+    Данные для обновления пользователя.
+    Все поля опциональны, можно передавать только изменяемые.
+    """
+
+    password: str | None = Field(
+        default=None,
+        min_length=8,
+        description="Новый пароль пользователя (минимум 8 символов)",
+    )
+
+
+class UserRead(BaseModel):
+    """
+    Схема, которая используется, когда мы возвращаем данные пользователя клиенту.
+
     Важно: hash_password не включается в ответ для безопасности.
     """
 

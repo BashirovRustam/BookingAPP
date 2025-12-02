@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 
 from app.Hotel.hotel_router import router as hotel_router
+from app.Room.room_router import router as room_router
 from app.Booking.booking_router import router as booking_router
+from app.BookingRooms.booking_rooms_router import router as booking_rooms_router
+from app.User.user_router import router as user_router
 
 # Импортируем все модели, чтобы SQLAlchemy знал о них и мог
 # корректно разрешать строковые ссылки в relationship(...)
@@ -16,7 +19,10 @@ app = FastAPI()
 
 # Подключаем роутеры
 app.include_router(hotel_router)
+app.include_router(room_router)
 app.include_router(booking_router)
+app.include_router(booking_rooms_router)
+app.include_router(user_router)
 
 
 @app.get("/")
