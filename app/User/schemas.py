@@ -48,3 +48,4 @@ class UserResponse(BaseModel):
     class Config:
         # Эта опция позволяет создавать схему напрямую из SQLAlchemy объекта User.
         from_attributes = True
+

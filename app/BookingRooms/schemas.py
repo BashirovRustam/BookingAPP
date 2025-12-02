@@ -35,3 +35,4 @@ class BookingRoomsResponse(BaseModel):
         # Эта опция позволяет создавать схему напрямую из SQLAlchemy объекта BookingRooms.
         from_attributes = True
 
+

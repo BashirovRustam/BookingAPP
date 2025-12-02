@@ -50,3 +50,4 @@ class RoomResponse(BaseModel):
         # Эта опция позволяет создавать схему напрямую из SQLAlchemy объекта Room.
         from_attributes = True
 
+

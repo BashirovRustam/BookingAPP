@@ -45,3 +45,4 @@ class HotelResponse(BaseModel):
         # Эта опция позволяет создавать схему напрямую из SQLAlchemy объекта Hotel.
         from_attributes = True
 
+
