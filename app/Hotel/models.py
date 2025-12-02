@@ -4,6 +4,7 @@ from sqlalchemy import Integer, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.Room.models import Room
 
 
 class Hotel(Base):
@@ -17,7 +18,8 @@ class Hotel(Base):
     image_id: Mapped[Optional[int]] = mapped_column(Integer)
 
     rooms: Mapped[List["Room"]] = relationship(
-        back_populates="hotel", cascade="all, delete-orphan"
+        back_populates="hotel",
+        cascade="all, delete-orphan",
     )
 
 

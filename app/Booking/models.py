@@ -6,6 +6,7 @@ from sqlalchemy import Date, ForeignKey, Integer, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.User.models import User
 
 
 class Booking(Base):

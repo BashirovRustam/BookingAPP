@@ -6,7 +6,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 
 # DATABASE_URL = "sqlite+aiosqlite:///./booking_demo.db"
-DATABASE_URL = "postgresql+psycopg://postgres:1234@localhost:5432/Booking_DB"
+DATABASE_URL = "postgresql+psycopg://postgres:postgres@localhost:5432/Booking_DB"
 
 
 class Base(DeclarativeBase):

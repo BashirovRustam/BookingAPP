@@ -5,6 +5,8 @@ from sqlalchemy import ForeignKey, Integer, JSON, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.BookingRooms.models import BookingRooms
+from app.Booking.models import Booking
 
 
 class Room(Base):
