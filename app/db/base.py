@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.orm import DeclarativeBase
 
 
-DATABASE_URL = "sqlite+aiosqlite:///./booking_demo.db"
+# DATABASE_URL = "sqlite+aiosqlite:///./booking_demo.db"
+DATABASE_URL = "postgresql+psycopg://postgres:1234@localhost:5432/Booking_DB"
 
 
 class Base(DeclarativeBase):
@@ -24,5 +25,3 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 async def init_models() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-
-
