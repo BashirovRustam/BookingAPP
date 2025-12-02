@@ -46,3 +46,4 @@ class HotelResponse(BaseModel):
         from_attributes = True
 
 
+

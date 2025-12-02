@@ -143,3 +143,4 @@ async def get_all_hotels(session: AsyncSession) -> List[Hotel]:
     return hotels
 
 
+

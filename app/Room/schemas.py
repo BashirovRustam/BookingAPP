@@ -6,7 +6,6 @@ Pydantic схемы для модели Room (Комната).
 - RoomRead: данные, которые мы возвращаем клиенту.
 """
 
-from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -19,8 +18,10 @@ class RoomBase(BaseModel):
     descriptions: Optional[str] = Field(
         None, max_length=512, description="Описание комнаты"
     )
-    price_per_day: Optional[Decimal] = Field(
-        None, gt=0, description="Стоимость за день, должна быть положительной"
+    price_per_day: Optional[int] = Field(
+        None,
+        gt=0,
+        description="Стоимость за день, должна быть положительной (целое число)",
     )
     services: Optional[dict] = Field(
         default=None, description="Услуги комнаты (JSON формат)"
@@ -41,7 +42,7 @@ class RoomCreate(RoomBase):
     """
 
     name: str  # type: ignore[assignment]
-    price_per_day: Decimal  # type: ignore[assignment]
+    price_per_day: int  # type: ignore[assignment]
     hotel_id: int  # type: ignore[assignment]
     services: Optional[dict] = Field(
         default_factory=dict, description="Услуги комнаты (JSON)"
@@ -65,7 +66,7 @@ class RoomRead(BaseModel):
     id: int
     name: str
     descriptions: Optional[str]
-    price_per_day: Decimal
+    price_per_day: int
     services: Optional[dict]
     quality: Optional[str]
     hotel_id: int

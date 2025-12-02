@@ -1,8 +1,7 @@
 from datetime import date
-from decimal import Decimal
 from typing import List, Optional
 
-from sqlalchemy import Date, ForeignKey, Integer, Numeric
+from sqlalchemy import Date, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -15,9 +14,9 @@ class Booking(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     date_from: Mapped[date] = mapped_column(Date, nullable=False)
     date_to: Mapped[date] = mapped_column(Date, nullable=False)
-    price_per_day: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    price_per_day: Mapped[int] = mapped_column(Integer, nullable=False)
     totals_day: Mapped[int] = mapped_column(Integer, nullable=False)
-    total_cost: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    total_cost: Mapped[int] = mapped_column(Integer, nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="booking")

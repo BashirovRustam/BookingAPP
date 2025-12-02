@@ -3,7 +3,6 @@
 import asyncio
 import random
 from datetime import date, timedelta
-from decimal import Decimal
 from typing import List, Sequence
 
 from sqlalchemy import func, select
@@ -51,7 +50,7 @@ KZ_ROOMS = [
         "hotel_idx": 0,
         "name": "Люкс «Бәйтерек»",
         "descriptions": "Панорама на Есиль, дизайнерский юрточный декор.",
-        "price_per_day": Decimal("88000.00"),
+        "price_per_day": 88000,
         "services": {"Wi-Fi": "гигабитный", "Сауна": "инфракрасная"},
         "quality": "люкс",
         "image_id": 601,
@@ -60,7 +59,7 @@ KZ_ROOMS = [
         "hotel_idx": 0,
         "name": "Номер «Expo»",
         "descriptions": "Минимализм, умный дом и арт об Expo-2017.",
-        "price_per_day": Decimal("64000.00"),
+        "price_per_day": 64000,
         "services": {"VR-тур": "по павильонам EXPO", "Завтрак": "кулинария Акмола"},
         "quality": "бизнес",
         "image_id": 602,
@@ -69,7 +68,7 @@ KZ_ROOMS = [
         "hotel_idx": 1,
         "name": "Апартаменты «Алатау»",
         "descriptions": "Тёплые полы, камин BioLite и терраса с видом на горы.",
-        "price_per_day": Decimal("72000.00"),
+        "price_per_day": 72000,
         "services": {"Ски-камеры": "Чимбулак", "Трансфер": "Медеу"},
         "quality": "комфорт",
         "image_id": 603,
@@ -78,7 +77,7 @@ KZ_ROOMS = [
         "hotel_idx": 1,
         "name": "Студия «Верный»",
         "descriptions": "Современный дизайн с акцентами Верного и арт Устемира.",
-        "price_per_day": Decimal("56000.00"),
+        "price_per_day": 56000,
         "services": {"Бариста": "кофе на песке", "Велосипеды": "прокат"},
         "quality": "бизнес",
         "image_id": 604,
@@ -87,7 +86,7 @@ KZ_ROOMS = [
         "hotel_idx": 2,
         "name": "Сьют «Каспий»",
         "descriptions": "Панорамные окна на море, аква-сцена и лаунж зона.",
-        "price_per_day": Decimal("68000.00"),
+        "price_per_day": 68000,
         "services": {"Катер": "до острова Каратон", "Шеф": "каспийские морепродукты"},
         "quality": "курорт",
         "image_id": 605,
@@ -96,7 +95,7 @@ KZ_ROOMS = [
         "hotel_idx": 2,
         "name": "Вилла «Желмая»",
         "descriptions": "Приватная терраса, тандыр и аперитивы с видом на закат.",
-        "price_per_day": Decimal("95000.00"),
+        "price_per_day": 95000,
         "services": {"Йога": "на пляже", "SUP": "прокат досок"},
         "quality": "премиум",
         "image_id": 606,
@@ -105,7 +104,7 @@ KZ_ROOMS = [
         "hotel_idx": 3,
         "name": "Номер «Орда»",
         "descriptions": "Комнаты с резьбой Южного Казахстана и ароматным чаем.",
-        "price_per_day": Decimal("43000.00"),
+        "price_per_day": 43000,
         "services": {"Экскурсия": "к Арыстан баб", "Табылдылық": "ужин дегустация"},
         "quality": "комфорт",
         "image_id": 607,
@@ -114,7 +113,7 @@ KZ_ROOMS = [
         "hotel_idx": 3,
         "name": "Семейный «Сайрам»",
         "descriptions": "Две спальни, детская юрта и интерактив о Шымкенте.",
-        "price_per_day": Decimal("51000.00"),
+        "price_per_day": 51000,
         "services": {"Гид": "к ущелью Сайрам-Угам", "Транспорт": "кыз узату сервис"},
         "quality": "семейный",
         "image_id": 608,
@@ -209,7 +208,7 @@ async def seed_bookings(session, users: Sequence[User], rooms: Sequence[Room], m
         stay_length = random.randint(1, 12)
         arrival = start_date + timedelta(days=offset_days)
         departure = arrival + timedelta(days=stay_length)
-        total_cost = room.price_per_day * Decimal(stay_length)
+        total_cost = room.price_per_day * stay_length
 
         booking = Booking(
             date_from=arrival,
