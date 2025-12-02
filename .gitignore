@@ -3,7 +3,6 @@ __pycache__/
 *.pyc
 venv/
 .idea/
+scripts
 .DS_Store
-booking_demo.db
-SQL_Demo.py
-practice.py
+practics.py
