@@ -2,8 +2,6 @@ from sqlalchemy import ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.Booking.models import Booking
-from app.Room.models import Room
 
 
 class BookingRooms(Base):

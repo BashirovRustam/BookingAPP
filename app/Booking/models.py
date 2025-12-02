@@ -1,6 +1,6 @@
 from datetime import date
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import Date, ForeignKey, Integer, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -33,5 +33,19 @@ class Booking(Base):
 
     def __str__(self) -> str:
         return f"{self.user} бронировал  {self.rooms} "
+
+    @property
+    def room_id(self) -> Optional[int]:
+        """
+        Удобное свойство для схем ответов: возвращает ID первой связанной комнаты.
+        """
+
+        if self.booking_rooms:
+            return self.booking_rooms[0].room_id
+        if self.rooms:
+            first_room = self.rooms[0]
+            # room.id может быть None, если объект ещё не сохранён
+            return getattr(first_room, "id", None)
+        return None
 
 
