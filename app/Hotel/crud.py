@@ -18,7 +18,7 @@ from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Hotel.models import Hotel
-from app.Hotel.schemas import HotelCreate
+from app.Hotel.schemas import HotelCreate, HotelUpdate
 
 
 async def create_hotel(session: AsyncSession, hotel_in: HotelCreate) -> Hotel:
@@ -64,29 +64,27 @@ async def get_hotel_by_id(session: AsyncSession, hotel_id: int) -> Optional[Hote
 async def update_hotel(
     session: AsyncSession,
     hotel_id: int,
-    hotel_in: HotelCreate,
+    hotel_in: HotelUpdate,
 ) -> Optional[Hotel]:
     """
-    Обновить данные существующего отеля.
-
-    Важно: если отель с указанным ID не найден, функция вернёт None.
+    Обновить данные существующего отеля по ID.
 
     :param session: Асинхронная сессия работы с базой данных.
     :param hotel_id: ID отеля, который нужно обновить.
-    :param hotel_in: Новые данные для отеля (Pydantic-схема HotelCreate).
+    :param hotel_in: Pydantic-схема с данными для обновления отеля.
     :return: Обновлённый ORM-объект Hotel или None, если отель не найден.
     """
+
+    update_data = hotel_in.model_dump(exclude_unset=True)
+
+    if not update_data:
+        # Если ничего не передано, просто вернём текущий отель (если он есть)
+        return await get_hotel_by_id(session, hotel_id)
 
     stmt = (
         update(Hotel)
         .where(Hotel.id == hotel_id)
-        .values(
-            name=hotel_in.name,
-            location=hotel_in.location,
-            services=hotel_in.services,
-            room_quality=hotel_in.room_quality,
-            image_id=hotel_in.image_id,
-        )
+        .values(**update_data)
         .returning(Hotel)
     )
 

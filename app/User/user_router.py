@@ -119,18 +119,10 @@ async def update_user(
     Обновить данные пользователя.
     """
 
-    # Преобразуем Pydantic-схему в словарь только с изменёнными полями
-    update_data = payload.model_dump(exclude_unset=True)
-
-    # Если передан новый пароль, записываем его в hash_password.
-    # В реальном приложении здесь нужно выполнить хеширование.
-    if "password" in update_data:
-        update_data["hash_password"] = update_data.pop("password")
-
     user = await user_crud.update_user(
         session=session,
         user_id=user_id,
-        user_data=update_data,
+        user_in=payload,
     )
 
     if user is None:
@@ -288,16 +280,10 @@ async def update_user(
     Обновить данные пользователя по ID.
     """
 
-    update_data = payload.model_dump(exclude_unset=True)
-
-    # Пароль нужно записать в колонку hash_password
-    if "password" in update_data:
-        update_data["hash_password"] = update_data.pop("password")
-
     user = await user_crud.update_user(
         session=session,
         user_id=user_id,
-        user_data=update_data,
+        user_in=payload,
     )
 
     if user is None:

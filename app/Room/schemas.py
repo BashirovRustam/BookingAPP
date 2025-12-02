@@ -74,5 +74,3 @@ class RoomRead(BaseModel):
 
     class Config:
         from_attributes = True
-
-

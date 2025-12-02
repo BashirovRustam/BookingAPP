@@ -20,7 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Hotel import crud as hotel_crud
-from app.Hotel.schemas import HotelCreate, HotelResponse
+from app.Hotel.schemas import HotelCreate, HotelResponse, HotelUpdate
 from app.db.base import get_session
 
 
@@ -96,7 +96,7 @@ async def create_hotel(
 )
 async def update_hotel(
     hotel_id: int,
-    hotel_in: HotelCreate,
+    hotel_in: HotelUpdate,
     session: AsyncSession = Depends(get_session),
 ) -> HotelResponse:
     """

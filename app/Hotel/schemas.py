@@ -10,9 +10,19 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-class HotelCreate(BaseModel):
+class HotelBase(BaseModel):
+    """Общие поля, используемые в нескольких схемах."""
+
+    name: Optional[str] = Field(None, max_length=128, description="Название отеля")
+    location: Optional[str] = Field(None, max_length=256, description="Местоположение отеля")
+    services: Optional[dict] = Field(default=None, description="Услуги отеля (JSON)")
+    room_quality: Optional[str] = Field(None, max_length=64, description="Качество номеров")
+    image_id: Optional[int] = Field(None, description="ID изображения отеля")
+
+
+class HotelCreate(HotelBase):
     """
-    Этот класс описывает данные, которые мы ожидаем от клиента.
+    Этот класс описывает данные, которые мы ожидаем от клиента при создании отеля.
 
     Важные моменты:
     - id отсутствует, потому что база данных сгенерирует его автоматически.
@@ -20,11 +30,18 @@ class HotelCreate(BaseModel):
     - services, room_quality и image_id являются опциональными полями.
     """
 
-    name: str = Field(..., max_length=128, description="Название отеля")
-    location: str = Field(..., max_length=256, description="Местоположение отеля")
+    name: str = Field(..., max_length=128, description="Название отеля")  # type: ignore[assignment]
+    location: str = Field(..., max_length=256, description="Местоположение отеля")  # type: ignore[assignment]
     services: Optional[dict] = Field(default_factory=dict, description="Услуги отеля (JSON)")
-    room_quality: Optional[str] = Field(None, max_length=64, description="Качество номеров")
-    image_id: Optional[int] = Field(None, description="ID изображения отеля")
+
+
+class HotelUpdate(HotelBase):
+    """
+    Данные для обновления отеля.
+    Все поля опциональны, поэтому можно отправлять только изменяемые значения.
+    """
+
+    pass
 
 
 class HotelResponse(BaseModel):

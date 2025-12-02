@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.Booking.models import Booking
-from app.Booking.schemas import BookingCreate
+from app.Booking.schemas import BookingCreate, BookingUpdate
 from app.BookingRooms.models import BookingRooms
 
 
@@ -103,40 +103,54 @@ async def get_booking_by_id(
 async def update_booking(
     session: AsyncSession,
     booking_id: int,
-    booking_in: BookingCreate,
+    booking_in: BookingUpdate,
 ) -> Optional[Booking]:
     """
-    Обновить данные существующего бронирования.
+    Обновить данные существующего бронирования по ID.
 
     Важно:
     - если бронирование не найдено — возвращается None;
-    - поля totals_day и total_cost берутся из схемы или пересчитываются;
-    - связь с комнатой (room_id) также обновляется через таблицу BookingRooms.
+    - поля totals_day и total_cost пересчитываются автоматически, если изменяются
+      date_from, date_to или price_per_day;
+    - связь с комнатой (room_id) обновляется через таблицу BookingRooms только
+      если room_id присутствует в update_data.
 
     :param session: Асинхронная сессия работы с базой данных.
     :param booking_id: ID бронирования, которое нужно обновить.
-    :param booking_in: Новые данные для бронирования (BookingCreate).
+    :param booking_in: Pydantic-схема с данными для обновления бронирования.
     :return: Обновлённый ORM-объект Booking или None, если запись не найдена.
     """
 
-    if booking_in.totals_day is None or booking_in.total_cost is None:
-        totals_day = (booking_in.date_to - booking_in.date_from).days
-        total_cost = totals_day * booking_in.price_per_day
-    else:
-        totals_day = booking_in.totals_day
-        total_cost = booking_in.total_cost
+    update_data = booking_in.model_dump(exclude_unset=True)
+
+    if not update_data:
+        # Если ничего не передано, просто вернём текущее бронирование (если оно есть)
+        return await get_booking_by_id(session, booking_id)
+
+    # Извлекаем room_id из update_data, если он есть (для обновления связи)
+    room_id = update_data.pop("room_id", None)
+
+    # Пересчитываем totals_day и total_cost, если изменяются даты или цена
+    if any(key in update_data for key in ["date_from", "date_to", "price_per_day"]):
+        # Получаем текущее бронирование для получения недостающих значений
+        current_booking = await get_booking_by_id(session, booking_id)
+        if current_booking is None:
+            return None
+
+        date_from = update_data.get("date_from", current_booking.date_from)
+        date_to = update_data.get("date_to", current_booking.date_to)
+        price_per_day = update_data.get("price_per_day", current_booking.price_per_day)
+
+        if date_to <= date_from:
+            return None
+
+        update_data["totals_day"] = (date_to - date_from).days
+        update_data["total_cost"] = update_data["totals_day"] * price_per_day
 
     stmt = (
         update(Booking)
         .where(Booking.id == booking_id)
-        .values(
-            date_from=booking_in.date_from,
-            date_to=booking_in.date_to,
-            price_per_day=booking_in.price_per_day,
-            totals_day=totals_day,
-            total_cost=total_cost,
-            user_id=booking_in.user_id,
-        )
+        .values(**update_data)
         .returning(Booking)
     )
 
@@ -147,16 +161,16 @@ async def update_booking(
         await session.rollback()
         return None
 
-    # Обновляем связь с комнатой в BookingRooms:
-    # удаляем существующие записи и создаём новую.
-    delete_stmt = delete(BookingRooms).where(BookingRooms.booking_id == booking_id)
-    await session.execute(delete_stmt)
+    # Обновляем связь с комнатой в BookingRooms только если room_id был передан
+    if room_id is not None:
+        delete_stmt = delete(BookingRooms).where(BookingRooms.booking_id == booking_id)
+        await session.execute(delete_stmt)
 
-    new_link = BookingRooms(
-        booking_id=booking_id,
-        room_id=booking_in.room_id,
-    )
-    session.add(new_link)
+        new_link = BookingRooms(
+            booking_id=booking_id,
+            room_id=room_id,
+        )
+        session.add(new_link)
 
     await session.commit()
     await session.refresh(updated_booking, attribute_names=["booking_rooms", "rooms"])

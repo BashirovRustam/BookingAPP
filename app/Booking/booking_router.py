@@ -20,7 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Booking import crud as booking_crud
-from app.Booking.schemas import BookingCreate, BookingResponse
+from app.Booking.schemas import BookingCreate, BookingResponse, BookingUpdate
 from app.db.base import get_session
 
 
@@ -102,7 +102,7 @@ async def create_booking(
 )
 async def update_booking(
     booking_id: int,
-    booking_in: BookingCreate,
+    booking_in: BookingUpdate,
     session: AsyncSession = Depends(get_session),
 ) -> BookingResponse:
     """

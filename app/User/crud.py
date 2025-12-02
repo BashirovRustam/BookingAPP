@@ -18,7 +18,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.User.models import User
-from app.User.schemas import UserCreate
+from app.User.schemas import UserCreate, UserUpdate
 
 
 async def get_user_by_email(
@@ -111,28 +111,30 @@ async def get_all_users(session: AsyncSession) -> List[User]:
 async def update_user(
     session: AsyncSession,
     user_id: int,
-    user_data: dict,
+    user_in: UserUpdate,
 ) -> Optional[User]:
     """
-    Обновить данные пользователя.
-
-    Ожидается, что user_data подготовлен, например, из Pydantic-схемы
-    UserUpdate через метод model_dump(exclude_unset=True). Если в user_data
-    присутствует поле email, повторно проверяется его уникальность.
+    Обновить данные пользователя по ID.
 
     :param session: Асинхронная сессия работы с БД.
     :param user_id: Идентификатор пользователя.
-    :param user_data: Словарь с обновляемыми полями.
+    :param user_in: Pydantic-схема с данными для обновления пользователя.
     :return: Обновлённый объект User или None, если пользователь не найден
              или новый email уже занят другим пользователем.
     """
 
-    if not user_data:
+    update_data = user_in.model_dump(exclude_unset=True)
+
+    if not update_data:
         # Нечего обновлять — просто вернём текущего пользователя (если он есть)
         return await get_user_by_id(session=session, user_id=user_id)
 
+    # Если передан новый пароль, записываем его в hash_password
+    if "password" in update_data:
+        update_data["hash_password"] = update_data.pop("password")
+
     # Если меняется email — проверим, что новый email свободен
-    new_email = user_data.get("email")
+    new_email = update_data.get("email")
     if new_email is not None:
         existing_with_email = await get_user_by_email(session=session, email=new_email)
         if existing_with_email is not None and existing_with_email.id != user_id:
@@ -141,7 +143,7 @@ async def update_user(
     stmt = (
         update(User)
         .where(User.id == user_id)
-        .values(**user_data)
+        .values(**update_data)
         .returning(User)
     )
     result = await session.execute(stmt)
