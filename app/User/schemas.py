@@ -39,7 +39,8 @@ class UserCreate(UserBase):
     password: str = Field(
         ...,
         min_length=8,
-        description="Пароль пользователя (минимум 8 символов)",
+        max_length=128,
+        description="Пароль пользователя (минимум 8 символов, максимум 128 символов)",
     )
     first_name: str  # type: ignore[assignment]
     last_name: str  # type: ignore[assignment]
@@ -54,7 +55,8 @@ class UserUpdate(UserBase):
     password: str | None = Field(
         default=None,
         min_length=8,
-        description="Новый пароль пользователя (минимум 8 символов)",
+        max_length=128,
+        description="Новый пароль пользователя (минимум 8 символов, максимум 128 символов)",
     )
 
 

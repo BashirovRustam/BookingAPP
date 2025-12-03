@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.User.models import User
 from app.User.schemas import UserCreate, UserUpdate
+from app.User.security import hash_password
 
 
 async def get_user_by_email(
@@ -61,12 +62,12 @@ async def create_user(
     if existing_user is not None:
         return None
 
-    # Предполагаем, что вызывающий код уже захешировал пароль
-    # и передал его в поле password, либо позже вы добавите
-    # отдельную схему/логику для хеширования.
+    # Хешируем пароль перед сохранением в БД
+    hashed_password = hash_password(user_in.password)
+    
     new_user = User(
         email=user_in.email,
-        hash_password=user_in.password,
+        hash_password=hashed_password,
         first_name=user_in.first_name,
         last_name=user_in.last_name,
     )
@@ -129,9 +130,10 @@ async def update_user(
         # Нечего обновлять — просто вернём текущего пользователя (если он есть)
         return await get_user_by_id(session=session, user_id=user_id)
 
-    # Если передан новый пароль, записываем его в hash_password
+    # Если передан новый пароль, хешируем его перед сохранением
     if "password" in update_data:
-        update_data["hash_password"] = update_data.pop("password")
+        plain_password = update_data.pop("password")
+        update_data["hash_password"] = hash_password(plain_password)
 
     # Если меняется email — проверим, что новый email свободен
     new_email = update_data.get("email")
@@ -140,12 +142,7 @@ async def update_user(
         if existing_with_email is not None and existing_with_email.id != user_id:
             return None
 
-    stmt = (
-        update(User)
-        .where(User.id == user_id)
-        .values(**update_data)
-        .returning(User)
-    )
+    stmt = update(User).where(User.id == user_id).values(**update_data).returning(User)
     result = await session.execute(stmt)
     updated_user = result.scalar_one_or_none()
 
@@ -181,6 +178,3 @@ async def delete_user(
 
     await session.commit()
     return True
-
-
-
