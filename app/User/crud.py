@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.User.models import User
 from app.User.schemas import UserCreate, UserUpdate
-from app.User.security import hash_password
+from app.User.security import hash_password, verify_password
 
 
 async def get_user_by_email(
@@ -64,7 +64,7 @@ async def create_user(
 
     # Хешируем пароль перед сохранением в БД
     hashed_password = hash_password(user_in.password)
-    
+
     new_user = User(
         email=user_in.email,
         hash_password=hashed_password,
@@ -77,6 +77,36 @@ async def create_user(
     await session.refresh(new_user)
 
     return new_user
+
+
+async def authenticate_user(
+    session: AsyncSession,
+    email: str,
+    password: str,
+) -> Optional[User]:
+    """
+    Проверить логин пользователя по email и паролю.
+
+    1. Ищем пользователя по email.
+    2. Если пользователь не найден — возвращаем None.
+    3. Если найден — проверяем пароль через verify_password.
+    4. Если пароль не подходит — возвращаем None.
+    5. Если всё ок — возвращаем объект User.
+
+    :param session: Асинхронная сессия работы с БД.
+    :param email: Email пользователя.
+    :param password: Пароль в открытом виде.
+    :return: Объект User при успешной аутентификации или None.
+    """
+
+    user = await get_user_by_email(session=session, email=email)
+    if user is None:
+        return None
+
+    if not verify_password(password, user.hash_password):
+        return None
+
+    return user
 
 
 async def get_user_by_id(
