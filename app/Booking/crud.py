@@ -26,6 +26,7 @@ from app.BookingRooms.models import BookingRooms
 async def create_booking(
     session: AsyncSession,
     booking_in: BookingCreate,
+    user_id: int,
 ) -> Booking:
     """
     Создать новое бронирование.
@@ -34,9 +35,11 @@ async def create_booking(
     - поля totals_day и total_cost обычно вычисляются валидатором Pydantic-схемы BookingCreate;
       здесь мы доверяем этим значениям или при необходимости можем пересчитать.
     - связь с комнатой (room_id) сохраняется через таблицу BookingRooms.
+    - user_id передаётся отдельным параметром (берётся из JWT токена).
 
     :param session: Асинхронная сессия работы с базой данных.
     :param booking_in: Данные для создания бронирования (BookingCreate).
+    :param user_id: ID пользователя, который создаёт бронирование (из JWT токена).
     :return: Созданный ORM-объект Booking.
     """
 
@@ -44,18 +47,18 @@ async def create_booking(
     # можно пересчитать значения дней и стоимости.
     if booking_in.totals_day is None or booking_in.total_cost is None:
         totals_day = (booking_in.date_to - booking_in.date_from).days
-        total_cost = totals_day * booking_in.price_per_day
+        total_cost = totals_day * float(booking_in.price_per_day)
     else:
         totals_day = booking_in.totals_day
-        total_cost = booking_in.total_cost
+        total_cost = int(booking_in.total_cost)
 
     new_booking = Booking(
         date_from=booking_in.date_from,
         date_to=booking_in.date_to,
-        price_per_day=booking_in.price_per_day,
+        price_per_day=int(booking_in.price_per_day),
         totals_day=totals_day,
         total_cost=total_cost,
-        user_id=booking_in.user_id,
+        user_id=user_id,
     )
 
     session.add(new_booking)
@@ -145,7 +148,10 @@ async def update_booking(
             return None
 
         update_data["totals_day"] = (date_to - date_from).days
-        update_data["total_cost"] = update_data["totals_day"] * price_per_day
+        if isinstance(price_per_day, float):
+            update_data["total_cost"] = update_data["totals_day"] * int(price_per_day)
+        else:
+            update_data["total_cost"] = update_data["totals_day"] * price_per_day
 
     stmt = (
         update(Booking)
@@ -224,5 +230,3 @@ async def get_all_bookings(session: AsyncSession) -> List[Booking]:
     bookings: List[Booking] = list(result.scalars().all())
 
     return bookings
-
-

@@ -7,13 +7,11 @@ from app.BookingRooms.booking_rooms_router import router as booking_rooms_router
 from app.User.user_router import router as user_router
 from app.User.auth_router import router as auth_router
 
-# Импортируем все модели, чтобы SQLAlchemy знал о них и мог
-# корректно разрешать строковые ссылки в relationship(...)
-from app.Hotel import models as hotel_models  # noqa: F401
-from app.Room import models as room_models  # noqa: F401
-from app.Booking import models as booking_models  # noqa: F401
-from app.BookingRooms import models as booking_rooms_models  # noqa: F401
-from app.User import models as user_models  # noqa: F401
+from app.Hotel import models as hotel_models
+from app.Room import models as room_models
+from app.Booking import models as booking_models
+from app.BookingRooms import models as booking_rooms_models
+from app.User import models as user_models
 
 
 app = FastAPI()

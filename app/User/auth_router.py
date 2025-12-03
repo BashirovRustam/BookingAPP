@@ -1,7 +1,9 @@
 """
-Маршруты для аутентификации пользователей:
-- /register — регистрация нового пользователя;
-- /login    — вход по email и паролю с выдачей JWT-токена.
+Роутер для аутентификации пользователей (логин и регистрация).
+
+Эндпоинты:
+- POST /register — регистрация нового пользователя
+- POST /login    — вход пользователя и получение JWT токена
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -15,6 +17,7 @@ from app.db.base import get_session
 
 
 router = APIRouter(
+    prefix="",
     tags=["Auth"],
 )
 
@@ -23,19 +26,16 @@ router = APIRouter(
     "/register",
     response_model=UserRead,
     status_code=status.HTTP_201_CREATED,
-    summary="Зарегистрировать нового пользователя",
+    summary="Регистрация нового пользователя",
 )
 async def register_user(
     payload: UserCreate,
     session: AsyncSession = Depends(get_session),
 ) -> UserRead:
     """
-    Регистрация нового пользователя.
+    Зарегистрировать нового пользователя.
 
-    Внутри используется логика user_crud.create_user:
-    - проверка уникальности email;
-    - хеширование пароля;
-    - сохранение пользователя в БД.
+    Создаёт пользователя в базе данных с хешированным паролем.
     """
 
     user = await user_crud.create_user(session=session, user_in=payload)
@@ -51,18 +51,17 @@ async def register_user(
 @router.post(
     "/login",
     response_model=TokenResponse,
-    summary="Вход по email и паролю (получить JWT-токен)",
+    summary="Вход пользователя и получение JWT токена",
 )
 async def login(
     payload: LoginRequest,
     session: AsyncSession = Depends(get_session),
 ) -> TokenResponse:
     """
-    Аутентификация пользователя по email и паролю.
+    Войти в систему и получить JWT токен.
 
-    1. Проверяем, что пользователь существует и пароль верный (authenticate_user).
-    2. Если всё ок — создаём JWT access-токен, в который кладём user.id в поле `sub`.
-    3. Возвращаем токен клиенту.
+    Проверяет email и пароль пользователя. При успешной проверке
+    возвращает JWT access токен для дальнейшей авторизации.
     """
 
     user = await user_crud.authenticate_user(
@@ -70,11 +69,14 @@ async def login(
         email=payload.email,
         password=payload.password,
     )
+
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     access_token = create_access_token(data={"sub": str(user.id)})
     return TokenResponse(access_token=access_token, token_type="bearer")
+

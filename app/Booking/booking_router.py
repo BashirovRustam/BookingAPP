@@ -4,7 +4,7 @@
 Эндпоинты:
 - GET    /bookings            — список всех бронирований
 - GET    /bookings/{id}       — получить бронирование по ID
-- POST   /bookings            — создать новое бронирование
+- POST   /bookings            — создать новое бронирование (требует авторизации)
 - PUT    /bookings/{id}       — обновить существующее бронирование
 - DELETE /bookings/{id}       — удалить бронирование
 
@@ -21,6 +21,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Booking import crud as booking_crud
 from app.Booking.schemas import BookingCreate, BookingResponse, BookingUpdate
+from app.User.auth import get_current_user
+from app.User.models import User
 from app.db.base import get_session
 
 
@@ -82,15 +84,20 @@ async def get_booking(
 )
 async def create_booking(
     booking_in: BookingCreate,
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> BookingResponse:
     """
     Создать новое бронирование и вернуть его данные.
+    
+    Требует авторизации (JWT токен в заголовке Authorization: Bearer <token>).
+    user_id автоматически берётся из токена залогиненного пользователя.
     """
 
     booking = await booking_crud.create_booking(
         session=session,
         booking_in=booking_in,
+        user_id=current_user.id,
     )
     return booking
 
@@ -153,6 +160,3 @@ async def delete_booking(
 
     # Для 204 No Content тело не возвращаем.
     return None
-
-
-
