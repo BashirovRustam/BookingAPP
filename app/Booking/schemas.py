@@ -33,8 +33,23 @@ class BookingCreate(BaseModel):
 
     @model_validator(mode="after")
     def check_and_calculate(self) -> "BookingCreate":
+        """
+        Комплексная валидация дат и расчёт производных полей.
+
+        Правила:
+        - дата окончания должна быть позже даты начала;
+        - нельзя бронировать прошедшие даты (дата начала не может быть в прошлом);
+        - автоматически считаются totals_day и total_cost.
+        """
+
+        today = date.today()
+
+        if self.date_from < today:
+            raise ValueError("Нельзя бронировать прошедшие даты")
+
         if self.date_to <= self.date_from:
             raise ValueError("Дата окончания должна быть позже даты начала")
+
         self.totals_day = (self.date_to - self.date_from).days
         self.total_cost = self.totals_day * self.price_per_day
         return self
@@ -53,10 +68,22 @@ class BookingUpdate(BaseModel):
 
     @model_validator(mode="after")
     def validate_dates(self) -> "BookingUpdate":
-        # Валидируем даты только если обе переданы
+        """
+        Валидация дат при обновлении:
+        - если обе даты переданы, дата окончания должна быть позже даты начала;
+        - при передаче date_from дополнительно проверяем, что она не в прошлом.
+        """
+
+        today = date.today()
+
+        if self.date_from and self.date_from < today:
+            raise ValueError("Нельзя бронировать прошедшие даты")
+
+        # Валидируем относительное положение дат только если обе переданы
         if self.date_from and self.date_to:
             if self.date_to <= self.date_from:
                 raise ValueError("Дата окончания должна быть позже даты начала")
+
         return self
 
 

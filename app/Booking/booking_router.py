@@ -89,11 +89,30 @@ async def create_booking(
 ) -> BookingResponse:
     """
     Создать новое бронирование и вернуть его данные.
-    
+
     Требует авторизации (JWT токен в заголовке Authorization: Bearer <token>).
     user_id автоматически берётся из токена залогиненного пользователя.
+
+    Дополнительно:
+    - на сервере проверяется, что даты не в прошлом (через Pydantic-схему);
+    - выполняется проверка, что на указанный диапазон дат комната свободна.
     """
 
+    # 1. Проверяем, свободна ли комната на заданные даты
+    is_available = await booking_crud.is_room_available(
+        session=session,
+        room_id=booking_in.room_id,
+        date_from=booking_in.date_from,
+        date_to=booking_in.date_to,
+    )
+
+    if not is_available:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Извините, на данные даты комната уже забронирована",
+        )
+
+    # 2. Создаём бронирование
     booking = await booking_crud.create_booking(
         session=session,
         booking_in=booking_in,
