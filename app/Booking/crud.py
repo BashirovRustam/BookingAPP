@@ -12,15 +12,50 @@ CRUD-операции для работы с моделью Booking (Брони�
 внутри асинхронного контекста FastAPI.
 """
 
+from datetime import date
 from typing import List, Optional
 
-from sqlalchemy import select, update, delete
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.Booking.models import Booking
 from app.Booking.schemas import BookingCreate, BookingUpdate
 from app.BookingRooms.models import BookingRooms
+
+
+async def is_room_available(
+    session: AsyncSession,
+    room_id: int,
+    date_from: date,
+    date_to: date,
+) -> bool:
+    """
+    Проверить, свободна ли комната на указанный диапазон дат.
+
+    Интервалы трактуются как [date_from, date_to), т.е. дата выезда не включается.
+    Это позволяет, например, уехать 15-го числа и заселиться другим гостям
+    с 15-го же, без конфликта по датам.
+
+    Логика пересечения:
+    - два интервала [a_from, a_to) и [b_from, b_to) пересекаются, если
+      a_from < b_to и a_to > b_from.
+    """
+
+    stmt = (
+        select(Booking)
+        .join(BookingRooms, BookingRooms.booking_id == Booking.id)
+        .where(
+            BookingRooms.room_id == room_id,
+            Booking.date_from < date_to,
+            Booking.date_to > date_from,
+        )
+    )
+
+    result = await session.execute(stmt)
+    # Если нашли хотя бы одно бронирование, значит комната занята на эти даты
+    existing_booking = result.scalar_one_or_none()
+    return existing_booking is None
 
 
 async def create_booking(
