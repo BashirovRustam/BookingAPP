@@ -6,6 +6,7 @@ from app.Booking.booking_router import router as booking_router
 from app.BookingRooms.booking_rooms_router import router as booking_rooms_router
 from app.User.user_router import router as user_router
 from app.User.auth_router import router as auth_router
+from app.User.User_info.user_info_router import router as user_info_user
 
 from app.Hotel import models as hotel_models
 from app.Room import models as room_models
@@ -23,6 +24,7 @@ app.include_router(booking_router)
 app.include_router(booking_rooms_router)
 app.include_router(user_router)
 app.include_router(auth_router)
+app.include_router(user_info_user)
 
 
 @app.get("/")
