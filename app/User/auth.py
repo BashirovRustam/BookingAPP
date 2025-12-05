@@ -23,12 +23,17 @@ from app.User.auth_schemas import TokenData
 from app.User.crud import get_user_by_id
 from app.User.models import User
 from app.db.base import get_session
+from app.config import settings
 
 
 # TODO: вынести в конфиг/переменные окружения
-SECRET_KEY = "CHANGE_ME_TO_SECURE_RANDOM_STRING"  # секрет для подписи JWT
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# SECRET_KEY = "CHANGE_ME_TO_SECURE_RANDOM_STRING"  # секрет для подписи JWT
+# ALGORITHM = "HS256"
+# ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 
 def create_access_token(

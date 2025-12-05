@@ -1,19 +1,18 @@
 from typing import AsyncGenerator
 
-from sqlalchemy import Date, ForeignKey, Integer, JSON, Numeric, String, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
+from app.config import settings
 
 
-# DATABASE_URL = "sqlite+aiosqlite:///./booking_demo.db"
-DATABASE_URL = "postgresql+psycopg://postgres:postgres@localhost:5432/Booking_DB"
+# DATABASE_URL = "postgresql+psycopg://postgres:postgres@localhost:5432/Booking_DB"
 
 
 class Base(DeclarativeBase):
     """Base class for all ORM models."""
 
 
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_async_engine(settings.DATABASE_URL, echo=True)
 AsyncSessionFactory = async_sessionmaker(engine, expire_on_commit=False)
 
 

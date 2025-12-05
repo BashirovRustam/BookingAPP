@@ -4,7 +4,7 @@
 
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.User import crud as user_crud
@@ -156,6 +156,7 @@ async def delete_user(
         )
 
     return None
+
 
 """
 Маршруты для работы с пользователями (User).
@@ -316,5 +317,3 @@ async def delete_user(
         )
 
     return None
-
-

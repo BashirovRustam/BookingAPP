@@ -3,4 +3,5 @@ __pycache__/
 *.pyc
 venv/
 .idea/
+app/.env
 .DS_Store

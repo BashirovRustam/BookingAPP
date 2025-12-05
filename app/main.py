@@ -8,13 +8,6 @@ from app.User.user_router import router as user_router
 from app.User.auth_router import router as auth_router
 from app.User.User_info.user_info_router import router as user_info_user
 
-from app.Hotel import models as hotel_models
-from app.Room import models as room_models
-from app.Booking import models as booking_models
-from app.BookingRooms import models as booking_rooms_models
-from app.User import models as user_models
-
-
 app = FastAPI()
 
 # Подключаем роутеры
