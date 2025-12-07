@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Hotel import crud as hotel_crud
 from app.Hotel.schemas import HotelCreate, HotelResponse, HotelUpdate
+from app.User.auth import admin_required
 from app.db.base import get_session
 
 
@@ -76,6 +77,7 @@ async def get_hotel(
     response_model=HotelResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Создать новый отель",
+    dependencies=[Depends(admin_required)],
 )
 async def create_hotel(
     hotel_in: HotelCreate,
@@ -93,6 +95,7 @@ async def create_hotel(
     "/{hotel_id}",
     response_model=HotelResponse,
     summary="Обновить существующий отель",
+    dependencies=[Depends(admin_required)],
 )
 async def update_hotel(
     hotel_id: int,
@@ -124,6 +127,7 @@ async def update_hotel(
     "/{hotel_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Удалить отель",
+    dependencies=[Depends(admin_required)],
 )
 async def delete_hotel(
     hotel_id: int,
@@ -144,5 +148,3 @@ async def delete_hotel(
 
     # Для 204 No Content тело ответа не возвращаем.
     return None
-
-

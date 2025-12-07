@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.User import crud as user_crud
-from app.User.auth import create_access_token
+from app.User.auth import create_access_token, admin_required
 from app.User.auth_schemas import LoginRequest, TokenResponse
 from app.User.schemas import UserCreate, UserRead
 from app.db.base import get_session
@@ -77,5 +77,11 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token = create_access_token(data={"sub": str(user.id)})
+    access_token = create_access_token(
+        data={
+            "sub": str(user.id),
+            "role": user.role.value,  # <-- обязательно!
+        }
+    )
+
     return TokenResponse(access_token=access_token, token_type="bearer")

@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.BookingRooms import crud as booking_rooms_crud
 from app.BookingRooms.schemas import BookingRoomsCreate, BookingRoomsResponse
+from app.User.auth import admin_required
 from app.db.base import get_session
 
 
@@ -97,6 +98,7 @@ async def get_booking_room(
     response_model=BookingRoomsResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Создать новую связь бронирования и комнаты",
+    dependencies=[Depends(admin_required)],
 )
 async def create_booking_room(
     payload: BookingRoomsCreate,
@@ -118,6 +120,7 @@ async def create_booking_room(
     "/{compound_id}",
     response_model=BookingRoomsResponse,
     summary="Обновить связь бронирования и комнаты",
+    dependencies=[Depends(admin_required)],
 )
 async def update_booking_room(
     compound_id: str,
@@ -151,6 +154,7 @@ async def update_booking_room(
     "/{compound_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Удалить связь бронирования и комнаты",
+    dependencies=[Depends(admin_required)],
 )
 async def delete_booking_room(
     compound_id: str,
@@ -175,11 +179,3 @@ async def delete_booking_room(
         )
 
     return None
-
-
-
-
-
-
-
-

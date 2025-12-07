@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Booking import crud as booking_crud
 from app.Booking.schemas import BookingCreate, BookingResponse, BookingUpdate
-from app.User.auth import get_current_user
+from app.User.auth import get_current_user, admin_required
 from app.User.models import User
 from app.db.base import get_session
 
@@ -125,6 +125,7 @@ async def create_booking(
     "/{booking_id}",
     response_model=BookingResponse,
     summary="Обновить существующее бронирование",
+    dependencies=[Depends(admin_required)],
 )
 async def update_booking(
     booking_id: int,
@@ -156,6 +157,7 @@ async def update_booking(
     "/{booking_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Удалить бронирование",
+    dependencies=[Depends(admin_required)],
 )
 async def delete_booking(
     booking_id: int,

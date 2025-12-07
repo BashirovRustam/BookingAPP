@@ -21,10 +21,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.User.auth_schemas import TokenData
 from app.User.crud import get_user_by_id
-from app.User.models import User
+from app.User.models import User, RolesEnum
 from app.db.base import get_session
 from app.config import settings
-
 
 # TODO: вынести в конфиг/переменные окружения
 # SECRET_KEY = "CHANGE_ME_TO_SECURE_RANDOM_STRING"  # секрет для подписи JWT
@@ -91,9 +90,10 @@ def decode_access_token(token: str) -> Optional[TokenData]:
             algorithms=[ALGORITHM],
         )
         user_id: str | None = payload.get("sub")
-        if user_id is None:
+        role: str | None = payload.get("role")  # <-- получаем роль
+        if user_id is None or role is None:
             return None
-        return TokenData(sub=user_id)
+        return TokenData(sub=user_id, role=role)
     except JWTError:
         return None
 
@@ -143,4 +143,18 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    user.role = token_data.role
+
+    return user
+
+
+async def admin_required(user: User = Depends(get_current_user)) -> User:
+    """
+    Dependency: разрешает доступ только пользователю с ролью ADMIN
+    """
+    if user.role != RolesEnum.ADMIN.value:  # сравниваем с upper-case "ADMIN"
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied: admin only",
+        )
     return user

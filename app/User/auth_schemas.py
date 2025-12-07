@@ -45,3 +45,4 @@ class TokenData(BaseModel):
     """
 
     sub: str | None = None  # идентификатор пользователя в токене
+    role: str  # роль пользователя в токене

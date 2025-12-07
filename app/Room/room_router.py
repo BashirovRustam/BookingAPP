@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Room import crud as room_crud
 from app.Room.schemas import RoomCreate, RoomRead, RoomUpdate
+from app.User.auth import admin_required
 from app.db.base import get_session
 
 
@@ -56,28 +57,32 @@ async def get_room(
     return room
 
 
+# Создание комнаты — только ADMIN
 @router.post(
     "",
     response_model=RoomRead,
     status_code=status.HTTP_201_CREATED,
     summary="Создать новую комнату",
+    dependencies=[Depends(admin_required)],
 )
 async def create_room(
     payload: RoomCreate,
     session: AsyncSession = Depends(get_session),
 ) -> RoomRead:
     """
-    Создать новую комнату.
+    Создать новую комнату (только для админов).
     """
-
     room = await room_crud.create_room(session=session, room_in=payload)
     return room
 
 
+# ---------------------------
+# Обновление комнаты — только ADMIN
 @router.put(
     "/{room_id}",
     response_model=RoomRead,
     summary="Обновить комнату",
+    dependencies=[Depends(admin_required)],
 )
 async def update_room(
     room_id: int,
@@ -85,49 +90,38 @@ async def update_room(
     session: AsyncSession = Depends(get_session),
 ) -> RoomRead:
     """
-    Обновить существующую комнату.
+    Обновить существующую комнату (только для админов).
     """
-
     room = await room_crud.update_room(
-        session=session,
-        room_id=room_id,
-        room_in=payload,
+        session=session, room_id=room_id, room_in=payload
     )
     if room is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Room with id={room_id} not found",
         )
-
     return room
 
 
+# ---------------------------
+# Удаление комнаты — только ADMIN
 @router.delete(
     "/{room_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Удалить комнату",
+    dependencies=[Depends(admin_required)],
 )
 async def delete_room(
     room_id: int,
     session: AsyncSession = Depends(get_session),
 ) -> None:
     """
-    Удалить комнату по ID.
+    Удалить комнату по ID (только для админов).
     """
-
     deleted = await room_crud.delete_room(session=session, room_id=room_id)
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Room with id={room_id} not found",
         )
-
     return None
-
-
-
-
-
-
-
-

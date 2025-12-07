@@ -8,8 +8,8 @@ from app.db.base import Base
 
 
 class RolesEnum(str, enum.Enum):
-    ADMIN = "admin"
-    USER = "user"
+    ADMIN = "ADMIN"
+    USER = "USER"
 
 
 class User(Base):
@@ -25,5 +25,6 @@ class User(Base):
     role: Mapped[RolesEnum] = mapped_column(
         Enum(RolesEnum), default=RolesEnum.USER, nullable=False
     )
+
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}"
