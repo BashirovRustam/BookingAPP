@@ -5,7 +5,7 @@ from app.Room.room_router import router as room_router
 from app.Booking.booking_router import router as booking_router
 from app.BookingRooms.booking_rooms_router import router as booking_rooms_router
 from app.User.user_router import router as user_router
-from app.User.auth_router import router as auth_router
+from app.User.User_auth.auth_router import router as auth_router
 from app.User.User_info.user_info_router import router as user_info_user
 
 app = FastAPI()

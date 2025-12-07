@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.User import crud as user_crud
+from app.User.User_auth.auth import admin_required
 from app.User.schemas import UserCreate, UserRead, UserUpdate
 from app.db.base import get_session
 
@@ -22,6 +23,7 @@ router = APIRouter(
     "",
     response_model=List[UserRead],
     summary="Получить список всех пользователей",
+    dependencies=[Depends(admin_required)],
 )
 async def list_users(
     session: AsyncSession = Depends(get_session),
@@ -38,6 +40,7 @@ async def list_users(
     "/{user_id}",
     response_model=UserRead,
     summary="Получить пользователя по ID",
+    dependencies=[Depends(admin_required)],
 )
 async def get_user(
     user_id: int,
@@ -61,6 +64,7 @@ async def get_user(
     "/by-email/{email}",
     response_model=UserRead,
     summary="Получить пользователя по email",
+    dependencies=[Depends(admin_required)],
 )
 async def get_user_by_email(
     email: str,
@@ -85,6 +89,7 @@ async def get_user_by_email(
     response_model=UserRead,
     status_code=status.HTTP_201_CREATED,
     summary="Создать нового пользователя",
+    dependencies=[Depends(admin_required)],
 )
 async def create_user(
     payload: UserCreate,
@@ -109,6 +114,7 @@ async def create_user(
     "/{user_id}",
     response_model=UserRead,
     summary="Обновить данные пользователя",
+    dependencies=[Depends(admin_required)],
 )
 async def update_user(
     user_id: int,

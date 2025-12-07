@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Booking import crud as booking_crud
 from app.Booking.schemas import BookingCreate, BookingResponse, BookingUpdate
-from app.User.auth import get_current_user, admin_required
+from app.User.User_auth.auth import get_current_user, admin_required
 from app.User.models import User
 from app.db.base import get_session
 
@@ -36,6 +36,7 @@ router = APIRouter(
     "",
     response_model=List[BookingResponse],
     summary="Получить список всех бронирований",
+    dependencies=[Depends(admin_required)],
 )
 async def list_bookings(
     session: AsyncSession = Depends(get_session),
@@ -52,6 +53,7 @@ async def list_bookings(
     "/{booking_id}",
     response_model=BookingResponse,
     summary="Получить бронирование по ID",
+    dependencies=[Depends(admin_required)],
 )
 async def get_booking(
     booking_id: int,

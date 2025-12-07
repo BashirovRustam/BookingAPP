@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.User.models import User
 from app.User.schemas import UserCreate, UserUpdate
-from app.User.security import hash_password, verify_password
+from app.User.User_auth.security import hash_password, verify_password
 
 
 async def get_user_by_email(
@@ -65,7 +65,7 @@ async def create_user(
 
     # Хешируем пароль перед сохранением в БД
     hashed_password = hash_password(user_in.password)
-    
+
     new_user = User(
         email=user_in.email,
         hash_password=hashed_password,

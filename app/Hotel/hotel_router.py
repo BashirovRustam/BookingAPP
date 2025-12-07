@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Hotel import crud as hotel_crud
 from app.Hotel.schemas import HotelCreate, HotelResponse, HotelUpdate
-from app.User.auth import admin_required
+from app.User.User_auth.auth import admin_required
 from app.db.base import get_session
 
 

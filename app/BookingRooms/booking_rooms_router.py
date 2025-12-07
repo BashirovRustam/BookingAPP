@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.BookingRooms import crud as booking_rooms_crud
 from app.BookingRooms.schemas import BookingRoomsCreate, BookingRoomsResponse
-from app.User.auth import admin_required
+from app.User.User_auth.auth import admin_required
 from app.db.base import get_session
 
 
@@ -53,6 +53,7 @@ def _parse_compound_id(compound_id: str) -> Tuple[int, int]:
     "",
     response_model=List[BookingRoomsResponse],
     summary="Получить список всех связей бронирования и комнат",
+    dependencies=[Depends(admin_required)],
 )
 async def list_booking_rooms(
     session: AsyncSession = Depends(get_session),
@@ -69,6 +70,7 @@ async def list_booking_rooms(
     "/{compound_id}",
     response_model=BookingRoomsResponse,
     summary="Получить связь по составному ID",
+    dependencies=[Depends(admin_required)],
 )
 async def get_booking_room(
     compound_id: str,

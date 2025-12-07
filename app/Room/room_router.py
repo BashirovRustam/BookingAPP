@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Room import crud as room_crud
 from app.Room.schemas import RoomCreate, RoomRead, RoomUpdate
-from app.User.auth import admin_required
+from app.User.User_auth.auth import admin_required
 from app.db.base import get_session
 
 
