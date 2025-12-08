@@ -7,7 +7,7 @@ Pydantic схема для модели Hotel (Отель).
 
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class HotelBase(BaseModel):
@@ -58,9 +58,8 @@ class HotelResponse(BaseModel):
     room_quality: Optional[str]
     image_id: Optional[int]
 
-    class Config:
-        # Эта опция позволяет создавать схему напрямую из SQLAlchemy объекта Hotel.
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
-
-
+    # class Config:
+    #     # Эта опция позволяет создавать схему напрямую из SQLAlchemy объекта Hotel.
+    #     from_attributes = True
