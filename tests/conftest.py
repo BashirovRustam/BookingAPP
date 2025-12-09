@@ -4,7 +4,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.Hotel.crud import create_hotel
 from app.Hotel.models import Base  # Импортируй свой Base для Hotel/Room/User
-from app.Hotel.schemas import HotelCreate
+from app.Hotel.schemas import HotelCreate, HotelUpdate
 from app.Room.models import Room
 from app.BookingRooms.models import BookingRooms
 from app.Booking.models import Booking
