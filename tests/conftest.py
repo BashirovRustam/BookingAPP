@@ -5,7 +5,9 @@ from sqlalchemy.pool import StaticPool
 from app.Hotel.crud import create_hotel
 from app.Hotel.models import Base  # Импортируй свой Base для Hotel/Room/User
 from app.Hotel.schemas import HotelCreate, HotelUpdate
-from app.Room.models import Room
+
+import app.Room.schemas as schemas
+from app.Room import crud
 from app.BookingRooms.models import BookingRooms
 from app.Booking.models import Booking
 from app.User.models import User
@@ -62,3 +64,16 @@ async def created_hotel(db_session):
     )
     hotel = await create_hotel(db_session, hotel_in)
     return hotel
+
+
+# Фикстура для создания комнаты
+@pytest.fixture
+async def created_room_fix(db_session):
+    room_in = schemas.RoomCreate(
+        name="Test room",
+        price_per_day=1000,
+        hotel_id=1,
+        services={"wifi": True},
+    )
+    room = await crud.create_room(db_session, room_in)
+    return room

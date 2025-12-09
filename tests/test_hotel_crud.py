@@ -1,30 +1,11 @@
-"""
-Примеры тестов для CRUD операций с бронированиями.
-
-Этот файл демонстрирует различные подходы к тестированию:
-1. Тестирование создания бронирования
-2. Тестирование получения бронирования
-3. Тестирование обновления бронирования
-4. Тестирование удаления бронирования
-5. Тестирование проверки доступности комнаты
-6. Тестирование граничных случаев и ошибок
-"""
-
-import pytest
-from datetime import date, timedelta
-from decimal import Decimal
-
-from app.Hotel import crud
-from app.Hotel import models
-from app.Hotel import schemas
-from app.Hotel import hotel_router
-
 # ============================================
 # ТЕСТЫ ДЛЯ СОЗДАНИЯ ОТЕЛЯ
 # ============================================
+
 import pytest
+from app.Hotel import crud
 from app.Hotel.schemas import HotelCreate, HotelUpdate
-from app.Hotel.crud import create_hotel, update_hotel, delete_hotel, get_hotel_by_id
+from app.Hotel.crud import create_hotel, delete_hotel, get_hotel_by_id
 
 
 @pytest.mark.anyio
