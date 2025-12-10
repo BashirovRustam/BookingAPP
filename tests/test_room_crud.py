@@ -1,6 +1,4 @@
 import pytest
-from datetime import date, timedelta
-from decimal import Decimal
 
 from app.Room import crud
 from app.Room import models
@@ -13,8 +11,7 @@ from app.Room import room_router
 
 
 @pytest.mark.anyio
-async def test_create_room(created_room_fix):
-    # Используем объект, который вернула фикстура
+async def test_create_room(db_session, created_room_fix):
     room = created_room_fix
 
     assert room.id is not None
@@ -22,7 +19,11 @@ async def test_create_room(created_room_fix):
     assert room.price_per_day == 1000
     assert room.hotel_id == 1
 
-    # Не проверяем descriptions, services, quality, image_id
+    # Дополнительная проверка: объект реально есть в БД
+    room_db = await crud.get_room_by_id(db_session, room.id)
+
+    assert room_db is not None
+    assert room_db.id == room.id
 
 
 @pytest.mark.anyio

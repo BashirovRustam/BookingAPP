@@ -1,4 +1,7 @@
+import uuid
+
 import pytest
+import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -6,11 +9,16 @@ from app.Hotel.crud import create_hotel
 from app.Hotel.models import Base  # Импортируй свой Base для Hotel/Room/User
 from app.Hotel.schemas import HotelCreate, HotelUpdate
 
-import app.Room.schemas as schemas
-from app.Room import crud
+from app.Room.schemas import RoomCreate, RoomUpdate
+from app.Room import crud as room_crud
+
+
+from app.User.models import User
+from app.User import schemas
+from app.User import crud
+
 from app.BookingRooms.models import BookingRooms
 from app.Booking.models import Booking
-from app.User.models import User
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -29,7 +37,7 @@ def engine():
     )
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def db_session(engine) -> AsyncSession:
     """
     Создаёт новую тестовую сессию на каждый тест.
@@ -69,11 +77,74 @@ async def created_hotel(db_session):
 # Фикстура для создания комнаты
 @pytest.fixture
 async def created_room_fix(db_session):
-    room_in = schemas.RoomCreate(
+    room_in = RoomCreate(
         name="Test room",
         price_per_day=1000,
         hotel_id=1,
         services={"wifi": True},
     )
-    room = await crud.create_room(db_session, room_in)
+    room = await room_crud.create_room(db_session, room_in)
     return room
+
+
+# # Фикстура для создания пользователя
+# @pytest.fixture
+# async def user_factory(db_session):
+#     """
+#     Фикстура для создания тестового пользователя.
+#
+#     Особенности:
+#     - email генерируется уникальный, чтобы не было конфликтов;
+#     - пароль НЕ хешируем — CRUD сам выполняет хеширование перед сохранением;
+#     - возвращает объект пользователя из базы данных.
+#     """
+#
+#     # Генерируем уникальный email для каждого теста
+#     unique_email = f"user_{uuid.uuid4().hex[:8]}@example.com"
+#
+#     # Данные, которые клиент присылает в API (Pydantic схема)
+#     user_in = schemas.UserCreate(
+#         email=unique_email,
+#         password="Qwerty1234$",  # простой тестовый пароль
+#         first_name="Test",
+#         last_name="User",
+#     )
+#
+#     # Вызываем CRUD для создания пользователя
+#     user = await crud.create_user(db_session, user_in)
+#
+#     # Убеждаемся, что пользователь создан
+#     assert user is not None
+#
+#     return user  # возвращаем готового пользователя
+
+
+@pytest_asyncio.fixture
+async def user_factory(db_session: AsyncSession):
+    """
+    Фикстура для создания тестового пользователя.
+
+    Особенности:
+    - email генерируется уникальный, чтобы не было конфликтов;
+    - пароль НЕ хешируем — CRUD сам выполняет хеширование перед сохранением;
+    - возвращает объект пользователя из базы данных.
+    """
+
+    # Генерируем уникальный email для каждого теста
+    unique_email = f"user_{uuid.uuid4().hex[:8]}@example.com"
+
+    # Данные, которые клиент присылает в API (Pydantic схема)
+    user_in = schemas.UserCreate(
+        email=unique_email,
+        password="Qwerty1234$",  # простой тестовый пароль
+        first_name="Test",
+        last_name="User",
+    )
+
+    # Вызываем CRUD для создания пользователя
+    user = await crud.create_user(db_session, user_in)
+
+    # Убеждаемся, что пользователь создан
+    assert user is not None
+
+    return user  # возвращаем готового пользователя
