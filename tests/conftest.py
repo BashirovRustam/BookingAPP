@@ -61,7 +61,7 @@ async def db_session(engine) -> AsyncSession:
 
 
 # Фикстура для создания отеля
-@pytest.fixture
+@pytest_asyncio.fixture
 async def created_hotel(db_session):
     hotel_in = HotelCreate(
         name="Test Hotel",
@@ -75,7 +75,7 @@ async def created_hotel(db_session):
 
 
 # Фикстура для создания комнаты
-@pytest.fixture
+@pytest_asyncio.fixture
 async def created_room_fix(db_session):
     room_in = RoomCreate(
         name="Test room",
@@ -148,3 +148,38 @@ async def user_factory(db_session: AsyncSession):
     assert user is not None
 
     return user  # возвращаем готового пользователя
+
+
+@pytest_asyncio.fixture
+async def booking_factory(
+    db_session: AsyncSession, created_hotel, created_room_fix, user_factory
+):
+    """
+    Фикстура для создания тестового бронирования.
+
+    Создаёт бронирование на 5 дней в будущем с базовой ценой 1000 за день.
+    Зависит от фикстур: created_hotel, created_room_fix, user_factory.
+
+    Returns:
+        Booking: Созданный объект бронирования из БД
+    """
+    from datetime import date, timedelta
+    from decimal import Decimal
+    from app.Booking.schemas import BookingCreate
+    from app.Booking import crud as booking_crud
+
+    today = date.today()
+
+    booking_in = BookingCreate(
+        date_from=today + timedelta(days=10),
+        date_to=today + timedelta(days=15),  # 5 дней
+        price_per_day=Decimal("1000.00"),
+        room_id=created_room_fix.id,
+    )
+
+    booking = await booking_crud.create_booking(
+        db_session, booking_in, user_id=user_factory.id
+    )
+
+    assert booking is not None
+    return booking

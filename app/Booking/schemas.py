@@ -18,7 +18,7 @@ class BookingCreate(BaseModel):
     date_to: date = Field(
         ..., description="Дата окончания проживания", example="2025-12-15"
     )
-    price_per_day: Decimal = Field(
+    price_per_day: int = Field(
         ..., gt=0, description="Стоимость за день", example="15000.00"
     )
     room_id: int = Field(..., gt=0, description="ID комнаты для бронирования")
@@ -91,9 +91,9 @@ class BookingResponse(BaseModel):
     id: int
     date_from: date
     date_to: date
-    price_per_day: Decimal
+    price_per_day: int
     totals_day: int
-    total_cost: Decimal
+    total_cost: int
     user_id: int
     room_id: int
 
