@@ -1,11 +1,19 @@
 from datetime import date
 from typing import List, Optional
+from enum import Enum
 
 from sqlalchemy import Date, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import Enum as SqlEnum
 
 from app.db.base import Base
 from app.User.models import User
+
+
+class BookingStatus(str, Enum):
+    PENDING = "PENDING"  # Ожидает подтверждения
+    CONFIRMED = "CONFIRMED"  # Подтверждено
+    CANCELLED = "CANCELLED"  # Отменено (опционально, но полезно)
 
 
 class Booking(Base):
@@ -18,6 +26,11 @@ class Booking(Base):
     totals_day: Mapped[int] = mapped_column(Integer, nullable=False)
     total_cost: Mapped[int] = mapped_column(Integer, nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    status: Mapped[BookingStatus] = mapped_column(
+        SqlEnum(BookingStatus, native_enum=True, name="bookingstatus"),
+        default=BookingStatus.PENDING,
+        nullable=False,
+    )
 
     user: Mapped["User"] = relationship(back_populates="booking")
     rooms: Mapped[List["Room"]] = relationship(
@@ -46,5 +59,3 @@ class Booking(Base):
             # room.id может быть None, если объект ещё не сохранён
             return getattr(first_room, "id", None)
         return None
-
-

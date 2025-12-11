@@ -9,6 +9,13 @@ from alembic import context
 from app.config import settings
 from app.db.base import Base  # импорт всех моделей
 
+from app.db.base import Base
+from app.User.models import User
+from app.Booking.models import Booking
+from app.Room.models import Room
+from app.Hotel.models import Hotel
+
+target_metadata = Base.metadata
 # Чтение alembic.ini
 config = context.config
 if config.config_file_name is not None:
