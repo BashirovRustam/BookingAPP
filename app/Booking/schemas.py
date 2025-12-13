@@ -66,7 +66,7 @@ class BookingUpdate(BaseModel):
     date_to: date | None = None
     price_per_day: Decimal | None = None
     room_id: int | None = None
-    status: BookingStatus = None
+    status: BookingStatus | None = None
 
     @model_validator(mode="after")
     def validate_dates(self) -> "BookingUpdate":

@@ -5,7 +5,7 @@
 - GET    /bookings            — список всех бронирований
 - GET    /bookings/{id}       — получить бронирование по ID
 - POST   /bookings            — создать новое бронирование (требует авторизации)
-- PUT    /bookings/{id}       — обновить существующее бронирование
+- PATCH  /bookings/{id}       — обновить существующее бронирование
 - DELETE /bookings/{id}       — удалить бронирование
 
 Все обработчики:
@@ -123,7 +123,7 @@ async def create_booking(
     return booking
 
 
-@router.put(
+@router.patch(
     "/{booking_id}",
     response_model=BookingResponse,
     summary="Обновить существующее бронирование",

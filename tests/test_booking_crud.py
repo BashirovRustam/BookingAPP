@@ -58,52 +58,6 @@ async def test_create_booking_success(
 
 
 @pytest.mark.asyncio
-async def test_create_booking_success(
-    db_session, created_hotel, created_room_fix, user_factory
-):
-    """
-    Позитивный тест: создание бронирования с корректными данными.
-
-    Проверяем:
-    - бронирование создаётся в БД;
-    - все поля сохранены правильно;
-    - связь с пользователем и комнатой установлена;
-    - totals_day и total_cost рассчитаны корректно.
-    """
-    # Подготовка данных
-    today = date.today()
-    date_from = today + timedelta(days=1)
-    date_to = date_from + timedelta(days=5)
-    price_per_day = Decimal("1500.00")
-
-    booking_in = BookingCreate(
-        date_from=date_from,
-        date_to=date_to,
-        price_per_day=price_per_day,
-        room_id=created_room_fix.id,
-    )
-
-    # Выполнение операции
-    booking = await booking_crud.create_booking(
-        db_session, booking_in, user_id=user_factory.id
-    )
-
-    # Проверка результата
-    assert booking is not None
-    assert booking.id is not None
-    assert booking.date_from == date_from
-    assert booking.date_to == date_to
-    assert booking.price_per_day == int(price_per_day)
-    assert booking.totals_day == 5
-    assert booking.total_cost == 5 * int(price_per_day)
-    assert booking.user_id == user_factory.id
-
-    # Проверяем связь с комнатой через BookingRooms
-    assert len(booking.booking_rooms) == 1
-    assert booking.booking_rooms[0].room_id == created_room_fix.id
-
-
-@pytest.mark.asyncio
 async def test_create_booking_with_precalculated_values(
     db_session, created_hotel: Hotel, created_room_fix: Room, user_factory: User
 ):

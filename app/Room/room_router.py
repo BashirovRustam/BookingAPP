@@ -78,7 +78,7 @@ async def create_room(
 
 # ---------------------------
 # Обновление комнаты — только ADMIN
-@router.put(
+@router.patch(
     "/{room_id}",
     response_model=RoomRead,
     summary="Обновить комнату",

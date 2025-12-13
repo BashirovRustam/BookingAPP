@@ -21,6 +21,16 @@ class BookingRoomsCreate(BaseModel):
     room_id: int = Field(..., gt=0, description="ID комнаты")
 
 
+class BookingRoomsUpdate(BaseModel):
+    """
+    Данные для обновления связи бронирования и комнаты.
+    Все поля опциональны, можно передавать только изменяемые.
+    """
+
+    booking_id: int | None = Field(None, gt=0, description="ID бронирования")
+    room_id: int | None = Field(None, gt=0, description="ID комнаты")
+
+
 class BookingRoomsResponse(BaseModel):
     """
     Этот класс используется, когда мы возвращаем данные связи бронирования и комнаты клиенту.

@@ -3,7 +3,6 @@ import pytest
 from app.Room import crud
 from app.Room import models
 from app.Room import schemas
-from app.Room import room_router
 
 # ============================================
 # ТЕСТЫ ДЛЯ СОЗДАНИЯ КОМНАТЫ
