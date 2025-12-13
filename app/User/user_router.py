@@ -110,7 +110,7 @@ async def create_user(
     return user
 
 
-@router.put(
+@router.patch(
     "/{user_id}",
     response_model=UserRead,
     summary="Обновить данные пользователя",
@@ -273,7 +273,7 @@ async def create_user(
     return user
 
 
-@router.put(
+@router.patch(
     "/{user_id}",
     response_model=UserRead,
     summary="Обновить данные пользователя",

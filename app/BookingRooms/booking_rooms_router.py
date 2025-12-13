@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.BookingRooms import crud as booking_rooms_crud
-from app.BookingRooms.schemas import BookingRoomsCreate, BookingRoomsResponse
+from app.BookingRooms.schemas import BookingRoomsCreate, BookingRoomsResponse, BookingRoomsUpdate
 from app.User.User_auth.auth import admin_required
 from app.db.base import get_session
 
@@ -118,7 +118,7 @@ async def create_booking_room(
     return link
 
 
-@router.put(
+@router.patch(
     "/{compound_id}",
     response_model=BookingRoomsResponse,
     summary="Обновить связь бронирования и комнаты",
@@ -126,7 +126,7 @@ async def create_booking_room(
 )
 async def update_booking_room(
     compound_id: str,
-    payload: BookingRoomsCreate,
+    payload: BookingRoomsUpdate,
     session: AsyncSession = Depends(get_session),
 ) -> BookingRoomsResponse:
     """

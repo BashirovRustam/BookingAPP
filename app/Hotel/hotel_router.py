@@ -91,7 +91,7 @@ async def create_hotel(
     return hotel
 
 
-@router.put(
+@router.patch(
     "/{hotel_id}",
     response_model=HotelResponse,
     summary="Обновить существующий отель",
