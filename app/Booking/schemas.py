@@ -9,6 +9,7 @@ from datetime import date
 from decimal import Decimal
 
 from pydantic import BaseModel, Field, model_validator
+from app.Booking.models import BookingStatus
 
 
 class BookingCreate(BaseModel):
@@ -65,6 +66,7 @@ class BookingUpdate(BaseModel):
     date_to: date | None = None
     price_per_day: Decimal | None = None
     room_id: int | None = None
+    status: BookingStatus = None
 
     @model_validator(mode="after")
     def validate_dates(self) -> "BookingUpdate":
@@ -96,6 +98,7 @@ class BookingResponse(BaseModel):
     total_cost: int
     user_id: int
     room_id: int
+    status: BookingStatus
 
     class Config:
         from_attributes = True

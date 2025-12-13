@@ -19,7 +19,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.Booking.models import Booking
+from app.Booking.models import Booking, BookingStatus
 from app.Booking.schemas import BookingCreate, BookingUpdate
 from app.BookingRooms.models import BookingRooms
 
@@ -94,6 +94,7 @@ async def create_booking(
         totals_day=totals_day,
         total_cost=total_cost,
         user_id=user_id,
+        status=BookingStatus.PENDING
     )
 
     session.add(new_booking)
