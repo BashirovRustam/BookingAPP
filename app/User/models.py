@@ -1,8 +1,11 @@
 import enum
+from datetime import datetime, timezone
 from typing import List
+from uuid import UUID
 
-from sqlalchemy import Integer, String, Enum
+from sqlalchemy import Integer, String, Enum, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 from app.db.base import Base
 
@@ -28,3 +31,21 @@ class User(Base):
 
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}"
+
+
+class RefreshTokenSession(Base):
+    __tablename__ = "refresh_token_sessions"
+
+    jti: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True), primary_key=True, nullable=False
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    user: Mapped["User"] = relationship("User")

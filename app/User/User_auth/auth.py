@@ -1,57 +1,34 @@
-"""
-Утилиты для работы с JWT-токенами (авторизация пользователей).
-
-Задачи модуля:
-- создать access-токен (JWT) для пользователя;
-- декодировать и проверять валидность токена;
-- извлекать данные пользователя из токена.
-
-Важно:
-- в продакшене SECRET_KEY и другие настройки нужно брать из переменных окружения;
-- здесь для простоты они заданы константами.
-"""
-
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
+from uuid import UUID, uuid4
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.User.User_auth.auth_schemas import TokenData
 from app.User.crud import get_user_by_id
-from app.User.models import User, RolesEnum
+from app.User.models import User, RolesEnum, RefreshTokenSession
 from app.db.base import get_session
 from app.config import settings
-
-# TODO: вынести в конфиг/переменные окружения
-# SECRET_KEY = "CHANGE_ME_TO_SECURE_RANDOM_STRING"  # секрет для подписи JWT
-# ALGORITHM = "HS256"
-# ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+REFRESH_TOKEN_EXPIRE_DAYS = settings.REFRESH_TOKEN_EXPIRE_DAYS
+
+TOKEN_TYPE_ACCESS = "access"
+TOKEN_TYPE_REFRESH = "refresh"
 
 
 def create_access_token(
     data: Dict[str, Any],
     expires_delta: Optional[timedelta] = None,
 ) -> str:
-    """
-    Сгенерировать JWT access-токен.
-
-    В payload обязательно будут:
-    - все поля из data;
-    - поле exp (время истечения токена).
-
-    :param data: Словарь с данными для токена (например, {"sub": str(user.id)}).
-    :param expires_delta: Необязательный срок жизни токена.
-    :return: Строка JWT access-токена.
-    """
-
     to_encode = data.copy()
+    to_encode["type"] = TOKEN_TYPE_ACCESS
 
     if expires_delta is not None:
         expire = datetime.now(timezone.utc) + expires_delta
@@ -60,7 +37,6 @@ def create_access_token(
             minutes=ACCESS_TOKEN_EXPIRE_MINUTES,
         )
 
-    # стандартное поле exp для JWT
     to_encode["exp"] = expire
 
     encoded_jwt = jwt.encode(
@@ -71,26 +47,127 @@ def create_access_token(
     return encoded_jwt
 
 
-def decode_access_token(token: str) -> Optional[TokenData]:
-    """
-    Декодировать и проверить JWT токен.
+def create_refresh_token(user_id: int) -> tuple[str, UUID]:
+    jti = uuid4()
+    expires_at = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
-    Проверяет:
-    - валидность подписи токена;
-    - срок действия токена (exp).
+    to_encode = {
+        "sub": str(user_id),
+        "jti": str(jti),
+        "type": TOKEN_TYPE_REFRESH,
+        "exp": expires_at,
+    }
 
-    :param token: JWT токен в виде строки.
-    :return: TokenData с данными из токена (sub = user_id) или None, если токен невалиден.
-    """
+    encoded_jwt = jwt.encode(
+        to_encode,
+        SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
+    return encoded_jwt, jti
 
+
+async def save_refresh_token(
+    session: AsyncSession,
+    jti: UUID,
+    user_id: int,
+    expires_at: datetime,
+) -> RefreshTokenSession:
+    refresh_session = RefreshTokenSession(
+        jti=jti,
+        user_id=user_id,
+        expires_at=expires_at,
+        revoked=False,
+    )
+    session.add(refresh_session)
+    await session.commit()
+    await session.refresh(refresh_session)
+    return refresh_session
+
+
+async def verify_refresh_token(
+    token: str,
+    session: AsyncSession,
+) -> Optional[RefreshTokenSession]:
     try:
         payload = jwt.decode(
             token,
             SECRET_KEY,
             algorithms=[ALGORITHM],
         )
+
+        token_type = payload.get("type")
+        if token_type != TOKEN_TYPE_REFRESH:
+            return None
+
+        jti_str = payload.get("jti")
+        if not jti_str:
+            return None
+
+        jti = UUID(jti_str)
+
+        stmt = select(RefreshTokenSession).where(
+            RefreshTokenSession.jti == jti,
+            RefreshTokenSession.revoked == False,
+            RefreshTokenSession.expires_at > datetime.now(timezone.utc),
+        )
+        result = await session.execute(stmt)
+        refresh_session = result.scalar_one_or_none()
+
+        return refresh_session
+    except (JWTError, ValueError):
+        return None
+
+
+async def revoke_refresh_token(
+    session: AsyncSession,
+    jti: UUID,
+) -> bool:
+    stmt = select(RefreshTokenSession).where(
+        RefreshTokenSession.jti == jti,
+        RefreshTokenSession.revoked == False,
+    )
+    result = await session.execute(stmt)
+    refresh_session = result.scalar_one_or_none()
+
+    if refresh_session is None:
+        return False
+
+    refresh_session.revoked = True
+    await session.commit()
+    return True
+
+
+async def revoke_all_user_refresh_tokens(
+    session: AsyncSession,
+    user_id: int,
+) -> None:
+    stmt = select(RefreshTokenSession).where(
+        RefreshTokenSession.user_id == user_id,
+        RefreshTokenSession.revoked == False,
+    )
+    result = await session.execute(stmt)
+    refresh_sessions = result.scalars().all()
+
+    for refresh_session in refresh_sessions:
+        refresh_session.revoked = True
+
+    await session.commit()
+
+
+def decode_access_token(token: str) -> Optional[TokenData]:
+    try:
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+        )
+
+        token_type = payload.get("type")
+        if token_type != TOKEN_TYPE_ACCESS:
+            return None
+
         user_id: str | None = payload.get("sub")
-        role: str | None = payload.get("role")  # <-- получаем роль
+        role: str | None = payload.get("role")
         if user_id is None or role is None:
             return None
         return TokenData(sub=user_id, role=role)
@@ -98,7 +175,6 @@ def decode_access_token(token: str) -> Optional[TokenData]:
         return None
 
 
-# Схема для извлечения токена из заголовка Authorization: Bearer <token>
 security = HTTPBearer()
 
 
@@ -106,23 +182,6 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     session: AsyncSession = Depends(get_session),
 ) -> User:
-    """
-    Dependency для получения текущего авторизованного пользователя.
-
-    Извлекает JWT токен из заголовка Authorization: Bearer <token>,
-    декодирует его, находит пользователя в БД и возвращает объект User.
-
-    Если токен невалиден или пользователь не найден — выбрасывает HTTPException 401.
-
-    Использование:
-        @router.post("/bookings")
-        async def create_booking(
-            current_user: User = Depends(get_current_user),
-            ...
-        ):
-            # current_user.id - это ID залогиненного пользователя
-    """
-
     token = credentials.credentials
     token_data = decode_access_token(token)
 
@@ -149,10 +208,7 @@ async def get_current_user(
 
 
 async def admin_required(user: User = Depends(get_current_user)) -> User:
-    """
-    Dependency: разрешает доступ только пользователю с ролью ADMIN
-    """
-    if user.role != RolesEnum.ADMIN.value:  # сравниваем с upper-case "ADMIN"
+    if user.role != RolesEnum.ADMIN.value:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Permission denied: admin only",
