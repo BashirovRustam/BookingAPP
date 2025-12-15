@@ -4,14 +4,14 @@
 
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Room import crud as room_crud
 from app.Room.schemas import RoomCreate, RoomRead, RoomUpdate
 from app.User.User_auth.auth import admin_required
 from app.db.base import get_session
-
+from app.Dependencies.pagination import Pagination, get_pagination
 
 router = APIRouter(
     prefix="/rooms",
@@ -25,13 +25,14 @@ router = APIRouter(
     summary="Получить список всех комнат",
 )
 async def list_rooms(
+    pagination: Pagination = Depends(get_pagination),
     session: AsyncSession = Depends(get_session),
 ) -> List[RoomRead]:
     """
     Вернуть все комнаты.
     """
 
-    return await room_crud.get_all_rooms(session=session)
+    return await room_crud.get_all_rooms(session=session, pagination=pagination)
 
 
 @router.get(

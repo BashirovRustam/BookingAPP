@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Room.models import Room
 from app.Room.schemas import RoomCreate, RoomUpdate
+from app.Dependencies.pagination import Pagination
 
 
 async def create_room(session: AsyncSession, room_in: RoomCreate) -> Room:
@@ -81,12 +82,7 @@ async def update_room(
         # Если ничего не передано, просто вернём текущую запись (если она есть)
         return await get_room_by_id(session, room_id)
 
-    stmt = (
-        update(Room)
-        .where(Room.id == room_id)
-        .values(**update_data)
-        .returning(Room)
-    )
+    stmt = update(Room).where(Room.id == room_id).values(**update_data).returning(Room)
 
     result = await session.execute(stmt)
     updated_room = result.scalar_one_or_none()
@@ -122,18 +118,17 @@ async def delete_room(session: AsyncSession, room_id: int) -> bool:
     return True
 
 
-async def get_all_rooms(session: AsyncSession) -> List[Room]:
+async def get_all_rooms(session: AsyncSession, pagination: Pagination) -> List[Room]:
     """
-    Получить список всех комнат.
+    Получить список комнат с учётом пагинации.
 
     :param session: Асинхронная сессия работы с БД.
+    :param pagination: Объект Pagination (limit, offset).
     :return: Список ORM-объектов Room.
     """
 
-    stmt = select(Room)
+    stmt = select(Room).limit(pagination.limit).offset(pagination.offset)
     result = await session.execute(stmt)
-    rooms: List[Room] = list(result.scalars().all())
+    rooms = result.scalars().all()
 
     return rooms
-
-
