@@ -17,6 +17,7 @@ from typing import List, Optional
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.Dependencies.filters import HotelFilter
 from app.Hotel.models import Hotel
 from app.Hotel.schemas import HotelCreate, HotelUpdate
 from app.Dependencies.pagination import Pagination
@@ -83,10 +84,7 @@ async def update_hotel(
         return await get_hotel_by_id(session, hotel_id)
 
     stmt = (
-        update(Hotel)
-        .where(Hotel.id == hotel_id)
-        .values(**update_data)
-        .returning(Hotel)
+        update(Hotel).where(Hotel.id == hotel_id).values(**update_data).returning(Hotel)
     )
 
     result = await session.execute(stmt)
@@ -127,20 +125,23 @@ async def delete_hotel(session: AsyncSession, hotel_id: int) -> bool:
     return True
 
 
-async def get_all_hotels(session: AsyncSession, pagination: Pagination) -> List[Hotel]:
+async def get_all_hotels(
+    session: AsyncSession,
+    pagination: Pagination,
+    filters: HotelFilter | None = None,
+) -> List[Hotel]:
     """
-    Получить список всех отелей из базы данных.
-
-    :param session: Асинхронная сессия работы с базой данных.
-    :param pagination: Параметры пагинации (limit, offset).
-    :return: Список ORM-объектов Hotel.
+    Получить список отелей с учетом фильтрации и пагинации.
     """
 
-    stmt = select(Hotel).limit(pagination.limit).offset(pagination.offset)
+    stmt = select(Hotel)
+
+    if filters and filters.location:
+        stmt = stmt.where(Hotel.location.ilike(f"%{filters.location}%"))
+
+    stmt = stmt.limit(pagination.limit).offset(pagination.offset)
+
     result = await session.execute(stmt)
-    hotels: List[Hotel] = list(result.scalars().all())
+    hotels: List[Hotel] = result.scalars().all()
 
     return hotels
-
-
-

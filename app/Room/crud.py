@@ -17,6 +17,7 @@ from typing import List, Optional
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.Dependencies.filters import RoomFilter
 from app.Room.models import Room
 from app.Room.schemas import RoomCreate, RoomUpdate
 from app.Dependencies.pagination import Pagination
@@ -118,17 +119,29 @@ async def delete_room(session: AsyncSession, room_id: int) -> bool:
     return True
 
 
-async def get_all_rooms(session: AsyncSession, pagination: Pagination) -> List[Room]:
+async def get_all_rooms(
+    session: AsyncSession,
+    pagination: Pagination,
+    filters: RoomFilter | None = None,
+) -> List[Room]:
     """
-    Получить список комнат с учётом пагинации.
-
-    :param session: Асинхронная сессия работы с БД.
-    :param pagination: Объект Pagination (limit, offset).
-    :return: Список ORM-объектов Room.
+    Получить список комнат с учётом фильтрации и пагинации.
     """
 
-    stmt = select(Room).limit(pagination.limit).offset(pagination.offset)
+    stmt = select(Room)
+
+    # 🔹 ФИЛЬТРАЦИЯ ПО ЦЕНЕ
+    if filters:
+        if filters.price_min is not None:
+            stmt = stmt.where(Room.price_per_day >= filters.price_min)
+
+        if filters.price_max is not None:
+            stmt = stmt.where(Room.price_per_day <= filters.price_max)
+
+    # 🔹 ПАГИНАЦИЯ В КОНЦЕ
+    stmt = stmt.limit(pagination.limit).offset(pagination.offset)
+
     result = await session.execute(stmt)
-    rooms = result.scalars().all()
+    rooms: List[Room] = result.scalars().all()
 
     return rooms

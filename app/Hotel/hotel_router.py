@@ -19,6 +19,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.Dependencies.filters import HotelFilter
 from app.Hotel import crud as hotel_crud
 from app.Hotel.schemas import HotelCreate, HotelResponse, HotelUpdate
 from app.Dependencies.pagination import Pagination, get_pagination
@@ -34,18 +35,23 @@ router = APIRouter(
 
 @router.get(
     "",
-    response_model=List[HotelResponse],
+    response_model=list[HotelResponse],
     summary="Получить список всех отелей",
 )
 async def list_hotels(
+    filters: HotelFilter = Depends(),
     pagination: Pagination = Depends(get_pagination),
     session: AsyncSession = Depends(get_session),
-) -> List[HotelResponse]:
+) -> list[HotelResponse]:
     """
     Вернуть список всех отелей из базы данных.
     """
 
-    hotels = await hotel_crud.get_all_hotels(session=session, pagination=pagination)
+    hotels = await hotel_crud.get_all_hotels(
+        session=session,
+        pagination=pagination,
+        filters=filters,
+    )
     return hotels
 
 

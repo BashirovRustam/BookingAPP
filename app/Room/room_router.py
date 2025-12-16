@@ -7,6 +7,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.Dependencies.filters import RoomFilter
 from app.Room import crud as room_crud
 from app.Room.schemas import RoomCreate, RoomRead, RoomUpdate
 from app.User.User_auth.auth import admin_required
@@ -21,18 +22,23 @@ router = APIRouter(
 
 @router.get(
     "",
-    response_model=List[RoomRead],
+    response_model=list[RoomRead],
     summary="Получить список всех комнат",
 )
 async def list_rooms(
+    filters: RoomFilter = Depends(),
     pagination: Pagination = Depends(get_pagination),
     session: AsyncSession = Depends(get_session),
-) -> List[RoomRead]:
+) -> list[RoomRead]:
     """
     Вернуть все комнаты.
     """
 
-    return await room_crud.get_all_rooms(session=session, pagination=pagination)
+    return await room_crud.get_all_rooms(
+        session=session,
+        pagination=pagination,
+        filters=filters,
+    )
 
 
 @router.get(
