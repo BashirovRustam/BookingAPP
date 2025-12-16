@@ -5,9 +5,6 @@ from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
 
 
-# DATABASE_URL = "postgresql+psycopg://postgres:postgres@localhost:5432/Booking_DB"
-
-
 class Base(DeclarativeBase):
     """Base class for all ORM models."""
 

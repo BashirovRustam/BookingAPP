@@ -14,11 +14,12 @@ CRUD-операции для работы с моделью Hotel.
 
 from typing import List, Optional
 
-from sqlalchemy import select, update, delete
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Hotel.models import Hotel
 from app.Hotel.schemas import HotelCreate, HotelUpdate
+from app.Dependencies.pagination import Pagination
 
 
 async def create_hotel(session: AsyncSession, hotel_in: HotelCreate) -> Hotel:
@@ -126,15 +127,16 @@ async def delete_hotel(session: AsyncSession, hotel_id: int) -> bool:
     return True
 
 
-async def get_all_hotels(session: AsyncSession) -> List[Hotel]:
+async def get_all_hotels(session: AsyncSession, pagination: Pagination) -> List[Hotel]:
     """
     Получить список всех отелей из базы данных.
 
     :param session: Асинхронная сессия работы с базой данных.
+    :param pagination: Параметры пагинации (limit, offset).
     :return: Список ORM-объектов Hotel.
     """
 
-    stmt = select(Hotel)
+    stmt = select(Hotel).limit(pagination.limit).offset(pagination.offset)
     result = await session.execute(stmt)
     hotels: List[Hotel] = list(result.scalars().all())
 

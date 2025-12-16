@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Hotel import crud as hotel_crud
 from app.Hotel.schemas import HotelCreate, HotelResponse, HotelUpdate
+from app.Dependencies.pagination import Pagination, get_pagination
 from app.User.User_auth.auth import admin_required
 from app.db.base import get_session
 
@@ -37,13 +38,14 @@ router = APIRouter(
     summary="Получить список всех отелей",
 )
 async def list_hotels(
+    pagination: Pagination = Depends(get_pagination),
     session: AsyncSession = Depends(get_session),
 ) -> List[HotelResponse]:
     """
     Вернуть список всех отелей из базы данных.
     """
 
-    hotels = await hotel_crud.get_all_hotels(session=session)
+    hotels = await hotel_crud.get_all_hotels(session=session, pagination=pagination)
     return hotels
 
 
