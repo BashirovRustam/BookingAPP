@@ -21,6 +21,7 @@ from app.Dependencies.filters import HotelFilter
 from app.Hotel.models import Hotel
 from app.Hotel.schemas import HotelCreate, HotelUpdate
 from app.Dependencies.pagination import Pagination
+from app.Room.models import Room
 
 
 async def create_hotel(session: AsyncSession, hotel_in: HotelCreate) -> Hotel:
@@ -145,3 +146,19 @@ async def get_all_hotels(
     hotels: List[Hotel] = result.scalars().all()
 
     return hotels
+
+
+async def get_rooms_by_hotel_id(
+    session: AsyncSession,
+    hotel_id: int,
+    pagination: Pagination,
+) -> List[Room]:
+    stmt = (
+        select(Room)
+        .where(Room.hotel_id == hotel_id)
+        .limit(pagination.limit)
+        .offset(pagination.offset)
+    )
+
+    result = await session.execute(stmt)
+    return result.scalars().all()

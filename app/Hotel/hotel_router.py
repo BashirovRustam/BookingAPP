@@ -23,6 +23,7 @@ from app.Dependencies.filters import HotelFilter
 from app.Hotel import crud as hotel_crud
 from app.Hotel.schemas import HotelCreate, HotelResponse, HotelUpdate
 from app.Dependencies.pagination import Pagination, get_pagination
+from app.Room.schemas import RoomRead
 from app.User.User_auth.auth import admin_required
 from app.db.base import get_session
 
@@ -78,6 +79,27 @@ async def get_hotel(
         )
 
     return hotel
+
+
+@router.get(
+    "/{hotel_id}/rooms",
+    response_model=list[RoomRead],
+    summary="Получить все комнаты отеля",
+)
+async def list_rooms_by_hotel(
+    hotel_id: int,
+    pagination: Pagination = Depends(get_pagination),
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Вернуть список всех комнат, принадлежащих конкретному отелю.
+    """
+
+    return await hotel_crud.get_rooms_by_hotel_id(
+        session=session,
+        hotel_id=hotel_id,
+        pagination=pagination,
+    )
 
 
 @router.post(
