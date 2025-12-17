@@ -161,4 +161,5 @@ async def get_rooms_by_hotel_id(
     )
 
     result = await session.execute(stmt)
-    return result.scalars().all()
+    rooms = result.scalars().all()
+    return rooms

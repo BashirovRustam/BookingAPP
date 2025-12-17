@@ -74,6 +74,53 @@ async def created_hotel(db_session):
     return hotel
 
 
+@pytest_asyncio.fixture
+async def multiple_hotels(db_session):
+    """
+    Создаёт несколько отелей с разными локациями для тестирования фильтрации.
+
+    Стратегия именования локаций:
+    - Используем реальные города с разными паттернами написания
+    - Включаем города с похожими названиями для проверки ILIKE
+    - Добавляем города на кириллице и латинице
+
+    Это позволит протестировать:
+    - Точный поиск по локации
+    - Частичный поиск (ILIKE с %)
+    - Регистронезависимый поиск
+    - Поиск по подстроке
+    """
+    hotels_data = [
+        {"name": "Grand Hotel", "location": "Moscow", "room_quality": "люкс"},
+        {"name": "City Inn", "location": "Moscow Center", "room_quality": "комфорт"},
+        {"name": "Beach Resort", "location": "Almaty", "room_quality": "стандарт"},
+        {
+            "name": "Mountain Lodge",
+            "location": "Almaty Mountains",
+            "room_quality": "комфорт",
+        },
+        {
+            "name": "Airport Hotel",
+            "location": "Saint Petersburg",
+            "room_quality": "эконом",
+        },
+    ]
+
+    hotels = []
+    for i, hotel_data in enumerate(hotels_data, start=1):
+        hotel_in = HotelCreate(
+            name=hotel_data["name"],
+            location=hotel_data["location"],
+            services={"wifi": True, "parking": i % 2 == 0},
+            room_quality=hotel_data["room_quality"],
+            image_id=i * 10,
+        )
+        hotel = await create_hotel(db_session, hotel_in)
+        hotels.append(hotel)
+
+    return hotels
+
+
 # Фикстура для создания комнаты
 @pytest_asyncio.fixture
 async def created_room_fix(db_session):
@@ -87,36 +134,33 @@ async def created_room_fix(db_session):
     return room
 
 
-# # Фикстура для создания пользователя
-# @pytest.fixture
-# async def user_factory(db_session):
-#     """
-#     Фикстура для создания тестового пользователя.
-#
-#     Особенности:
-#     - email генерируется уникальный, чтобы не было конфликтов;
-#     - пароль НЕ хешируем — CRUD сам выполняет хеширование перед сохранением;
-#     - возвращает объект пользователя из базы данных.
-#     """
-#
-#     # Генерируем уникальный email для каждого теста
-#     unique_email = f"user_{uuid.uuid4().hex[:8]}@example.com"
-#
-#     # Данные, которые клиент присылает в API (Pydantic схема)
-#     user_in = schemas.UserCreate(
-#         email=unique_email,
-#         password="Qwerty1234$",  # простой тестовый пароль
-#         first_name="Test",
-#         last_name="User",
-#     )
-#
-#     # Вызываем CRUD для создания пользователя
-#     user = await crud.create_user(db_session, user_in)
-#
-#     # Убеждаемся, что пользователь создан
-#     assert user is not None
-#
-#     return user  # возвращаем готового пользователя
+@pytest_asyncio.fixture
+async def multiple_rooms(db_session):
+    """
+    Создаёт несколько комнат с разными ценами для тестирования фильтрации.
+
+    Создаём 5 комнат с ценами от 500 до 2500 с шагом 500.
+    Это позволит проверить:
+    - Фильтрацию по минимальной цене
+    - Фильтрацию по максимальной цене
+    - Фильтрацию по диапазону цен
+    - Пагинацию
+    """
+    rooms = []
+    prices = [500, 1000, 1500, 2000, 2500]
+
+    for i, price in enumerate(prices, start=1):
+        room_in = RoomCreate(
+            name=f"Room {i}",
+            price_per_day=price,
+            hotel_id=1,
+            services={"wifi": True},
+        )
+        room = await room_crud.create_room(db_session, room_in)
+        rooms.append(room)
+
+    # Возвращаем список комнат, отсортированный по ID (как в БД)
+    return rooms
 
 
 @pytest_asyncio.fixture
