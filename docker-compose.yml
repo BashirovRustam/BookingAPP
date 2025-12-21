@@ -86,3 +86,4 @@ services:
       - SMTP_FROM_EMAIL=noreply@booking.local
     restart: unless-stopped
 
+

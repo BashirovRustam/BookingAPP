@@ -56,3 +56,4 @@ def send_booking_email(self, email: str, booking_data: dict):
     except Exception as exc:
         self.retry(exc=exc, countdown=60)
 
+

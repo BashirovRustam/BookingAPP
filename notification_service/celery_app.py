@@ -16,3 +16,4 @@ celery_app.conf.update(
     enable_utc=True,
 )
 
+
