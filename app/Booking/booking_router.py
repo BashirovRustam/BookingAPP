@@ -16,14 +16,23 @@
 
 from typing import List
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+from sqlalchemy import select
 
 from app.Booking import crud as booking_crud
 from app.Booking.schemas import BookingCreate, BookingResponse, BookingUpdate
 from app.User.User_auth.auth import get_current_user, admin_required
 from app.User.models import User
 from app.db.base import get_session
+from app.Room.models import Room
+
+import os
+
+NOTIFICATION_SERVICE_URL = os.getenv("NOTIFICATION_SERVICE_URL", "http://localhost:8001")
+MONOLITH_URL = os.getenv("MONOLITH_URL", "http://localhost:8000")
 
 
 router = APIRouter(
@@ -120,6 +129,72 @@ async def create_booking(
         booking_in=booking_in,
         user_id=current_user.id,
     )
+
+    # 3. Отправляем уведомление через notification_service
+    try:
+        # Получаем информацию о комнате и отеле
+        room_stmt = select(Room).where(Room.id == booking_in.room_id).options(
+            selectinload(Room.hotel)
+        )
+        room_result = await session.execute(room_stmt)
+        room = room_result.scalar_one_or_none()
+
+        if room and current_user.email:
+            notification_data = {
+                "email": current_user.email,
+                "booking_id": booking.id,
+                "hotel_name": room.hotel.name if room.hotel else "N/A",
+                "room_name": room.name,
+                "check_in": str(booking.date_from),
+                "check_out": str(booking.date_to),
+                "total_price": float(booking.total_cost),
+                "guest_name": f"{current_user.first_name} {current_user.last_name}",
+                "confirm_url": f"{MONOLITH_URL}/bookings/{booking.id}/confirm",
+            }
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    f"{NOTIFICATION_SERVICE_URL}/notify/booking",
+                    json=notification_data,
+                    timeout=5.0,
+                )
+    except Exception:
+        # Не блокируем создание бронирования если уведомление не отправилось
+        pass
+
+    return booking
+
+
+@router.get(
+    "/{booking_id}/confirm",
+    response_model=BookingResponse,
+    summary="Подтвердить бронирование",
+)
+async def confirm_booking(
+    booking_id: int,
+    session: AsyncSession = Depends(get_session),
+) -> BookingResponse:
+    """
+    Подтвердить бронирование (изменить статус с PENDING на CONFIRMED).
+    """
+    from app.Booking.models import BookingStatus
+
+    booking = await booking_crud.get_booking_by_id(session=session, booking_id=booking_id)
+    if booking is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Booking with id={booking_id} not found",
+        )
+
+    if booking.status != BookingStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Booking is already {booking.status.value}",
+        )
+
+    booking.status = BookingStatus.CONFIRMED
+    await session.commit()
+    await session.refresh(booking, attribute_names=["booking_rooms", "rooms"])
+
     return booking
 
 

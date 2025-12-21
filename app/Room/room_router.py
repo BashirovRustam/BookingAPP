@@ -22,7 +22,7 @@ router = APIRouter(
 
 @router.get(
     "",
-    response_model=list[RoomRead],
+    response_model=List[RoomRead],
     summary="Получить список всех комнат",
 )
 async def list_rooms(
@@ -35,9 +35,7 @@ async def list_rooms(
     """
 
     return await room_crud.get_all_rooms(
-        session=session,
-        pagination=pagination,
-        filters=filters,
+        session=session, pagination=pagination, filters=filters
     )
 
 

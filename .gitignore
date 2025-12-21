@@ -5,3 +5,4 @@ venv/
 .idea/
 app/.env
 .DS_Store
+ARCHITECTURE_EXPLANATION.md
