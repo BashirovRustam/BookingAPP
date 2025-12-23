@@ -11,7 +11,7 @@ router = APIRouter(prefix="/payments", tags=["payments"])
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=PaymentRead)
 async def create_payment(
     payment_data: PaymentCreate,
-    session: AsyncSession = Depends(get_session),  # <-- исправлено
+    session: AsyncSession = Depends(get_session),
 ):
     """
     Создать новый платёж для бронирования.
