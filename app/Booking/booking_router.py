@@ -23,6 +23,8 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 
 from app.Booking import crud as booking_crud
+from app.Booking.crud import get_booking_by_id
+from app.Booking.models import BookingStatus
 from app.Booking.schemas import BookingCreate, BookingResponse, BookingUpdate
 from app.User.User_auth.auth import get_current_user, admin_required
 from app.User.models import User
@@ -31,9 +33,12 @@ from app.Room.models import Room
 
 import os
 
-NOTIFICATION_SERVICE_URL = os.getenv("NOTIFICATION_SERVICE_URL", "http://localhost:8001")
+NOTIFICATION_SERVICE_URL = os.getenv(
+    "NOTIFICATION_SERVICE_URL", "http://localhost:8001"
+)
 MONOLITH_URL = os.getenv("MONOLITH_URL", "http://localhost:8000")
 
+PAYMENT_SERVICE_URL = os.getenv("PAYMENT_SERVICE_URL", "http://localhost:8002")
 
 router = APIRouter(
     prefix="/bookings",
@@ -133,8 +138,10 @@ async def create_booking(
     # 3. Отправляем уведомление через notification_service
     try:
         # Получаем информацию о комнате и отеле
-        room_stmt = select(Room).where(Room.id == booking_in.room_id).options(
-            selectinload(Room.hotel)
+        room_stmt = (
+            select(Room)
+            .where(Room.id == booking_in.room_id)
+            .options(selectinload(Room.hotel))
         )
         room_result = await session.execute(room_stmt)
         room = room_result.scalar_one_or_none()
@@ -178,7 +185,9 @@ async def confirm_booking(
     """
     from app.Booking.models import BookingStatus
 
-    booking = await booking_crud.get_booking_by_id(session=session, booking_id=booking_id)
+    booking = await booking_crud.get_booking_by_id(
+        session=session, booking_id=booking_id
+    )
     if booking is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -258,3 +267,30 @@ async def delete_booking(
 
     # Для 204 No Content тело не возвращаем.
     return None
+
+
+@router.post(
+    "/{booking_id}/pay",
+    status_code=status.HTTP_201_CREATED,
+    summary="Оплата бронирования",
+)
+async def pay_booking(booking_id: int, session: AsyncSession = Depends(get_session)):
+    # 1. Получить booking из БД
+    booking = await get_booking_by_id(session, booking_id)
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    if booking.status != BookingStatus.CONFIRMED:
+        raise HTTPException(status_code=400, detail="Booking must be confirmed")
+
+    # 2. Отправить в payment service
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{PAYMENT_SERVICE_URL}/payments/",
+            json={"booking_id": booking.id, "amount": booking.total_cost},
+        )
+
+        if response.status_code != 201:
+            raise HTTPException(status_code=502, detail="Payment service error")
+
+        return response.json()

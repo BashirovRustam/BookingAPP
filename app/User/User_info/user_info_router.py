@@ -13,7 +13,11 @@ router = APIRouter(
 )
 
 
-@router.get("/bookings", response_model=MeResponse)
+@router.get(
+    "/bookings",
+    response_model=MeResponse,
+    summary="Бронирование клиента",
+)
 async def read_my_profile(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),

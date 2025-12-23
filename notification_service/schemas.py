@@ -21,3 +21,4 @@ class NotificationResponse(BaseModel):
     message: str
 
 
+
