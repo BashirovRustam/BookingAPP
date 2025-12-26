@@ -57,3 +57,5 @@ def send_booking_email(self, email: str, booking_data: dict):
         self.retry(exc=exc, countdown=60)
 
 
+
+

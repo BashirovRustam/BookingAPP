@@ -45,6 +45,7 @@ services:
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
       - REFRESH_TOKEN_EXPIRE_DAYS=${REFRESH_TOKEN_EXPIRE_DAYS:-30}
       - NOTIFICATION_SERVICE_URL=http://notification_service:8001
+      - PAYMENT_SERVICE_URL=http://payment_service:8002
       - MONOLITH_URL=http://localhost:8000
     restart: unless-stopped
 
@@ -85,5 +86,16 @@ services:
       - SMTP_USE_TLS=false
       - SMTP_FROM_EMAIL=noreply@booking.local
     restart: unless-stopped
+
+  payment_service:
+    build: .
+    command: uvicorn payment_service.main:app --host 0.0.0.0 --port 8002
+    ports:
+      - "8002:8002"
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
+
 
 

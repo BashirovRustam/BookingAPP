@@ -4,5 +4,6 @@ __pycache__/
 venv/
 .idea/
 app/.env
+payment_service/.env
 .DS_Store
 ARCHITECTURE_EXPLANATION.md
