@@ -10,10 +10,11 @@ Base = declarative_base()
 
 
 class PaymentStatus(str, enum.Enum):
-    pending = "pending"  # Ожидает оплаты
-    success = "success"  # Оплата успешна
-    failed = "failed"  # Ошибка платежа
-    cancelled = "cancelled"  # Платёж отменён
+    created = "created"  # создан в системе
+    pending = "pending"  # создан PayPal order
+    completed = "completed"  # подтверждён webhook
+    failed = "failed"  # ошибка платежа
+    cancelled = "cancelled"  # платёж отменён
 
 
 class Payment(Base):
@@ -22,20 +23,34 @@ class Payment(Base):
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    booking_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
-    amount: Mapped[int] = mapped_column(Float, nullable=False)
+
+    booking_id: Mapped[int] = mapped_column(nullable=False, index=True)
+
+    amount: Mapped[int] = mapped_column(
+        nullable=False, comment="Сумма в минорных единицах (копейки)"
+    )
+
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="KZT")
+
     status: Mapped[PaymentStatus] = mapped_column(
-        Enum(PaymentStatus), nullable=False, default=PaymentStatus.pending
+        Enum(PaymentStatus), nullable=False, default=PaymentStatus.created
     )
-    transaction_id: Mapped[Optional[str]] = mapped_column(
-        String(100), unique=True, index=True
+
+    # PayPal
+    paypal_order_id: Mapped[Optional[str]] = mapped_column(
+        String(64), unique=True, index=True
     )
+
+    paypal_capture_id: Mapped[Optional[str]] = mapped_column(String(64), unique=True)
+
     error_message: Mapped[Optional[str]] = mapped_column(String(255))
+
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )

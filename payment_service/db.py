@@ -1,7 +1,10 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+
+from payment_service.config import BASE_DIR
 from payment_service.models import Base
 
-DATABASE_URL = "sqlite+aiosqlite:///./payment.db"
+DATABASE_URL = f"sqlite+aiosqlite:///{BASE_DIR}/payment.db"
+
 
 engine = create_async_engine(DATABASE_URL, echo=True)
 

@@ -287,7 +287,11 @@ async def pay_booking(booking_id: int, session: AsyncSession = Depends(get_sessi
     async with httpx.AsyncClient() as client:
         response = await client.post(
             f"{PAYMENT_SERVICE_URL}/payments/",
-            json={"booking_id": booking.id, "amount": booking.total_cost},
+            json={
+                "booking_id": booking.id,
+                "amount": booking.total_cost,
+                "currency": "USD",
+            },
         )
 
         if response.status_code != 201:
