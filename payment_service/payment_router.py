@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import JSONResponse
 
@@ -114,3 +114,54 @@ async def payment_success():
 @router.get("/payments/cancel")
 async def payment_cancel():
     return JSONResponse({"status": "cancel", "message": "Платеж отменён"})
+
+
+@router.post("/webhook")
+async def paypal_webhook(
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Эндпоинт для получения уведомлений от PayPal
+    """
+
+    # Получаем данные от PayPal
+    body = await request.json()
+    event_type = body.get("event_type")
+
+    print(f"🔔 Получен вебхук: {event_type}")  # Для отладки
+    print(f"📦 Полные данные: {body}")  # Посмотрим структуру
+
+    # Обрабатываем событие "платёж захвачен"
+    if event_type == "PAYMENT.CAPTURE.COMPLETED":
+        resource = body.get("resource", {})
+
+        # Извлекаем order_id
+        order_id = (
+            resource.get("supplementary_data", {})
+            .get("related_ids", {})
+            .get("order_id")
+        )
+        capture_id = resource.get("id")
+
+        print(f"💳 Order ID: {order_id}, Capture ID: {capture_id}")
+
+        if not order_id:
+            print("⚠️ Order ID не найден в вебхуке!")
+            return {"status": "ok"}
+
+        # Находим платёж в БД
+        result = await session.execute(
+            select(Payment).where(Payment.paypal_order_id == order_id)
+        )
+        payment = result.scalar_one_or_none()
+
+        if payment:
+            payment.status = PaymentStatus.completed
+            payment.paypal_capture_id = capture_id
+            await session.commit()
+            print(f"✅ Платёж {payment.id} обновлён на completed")
+        else:
+            print(f"❌ Платёж с order_id {order_id} не найден в БД")
+
+    return {"status": "ok"}
