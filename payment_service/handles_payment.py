@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from payment_service.models import Payment, PaymentStatus
 
+
 async def handle_payment_completed(body: dict, session: AsyncSession):
     resource = body.get("resource", {})
     order_id = (
@@ -96,4 +97,3 @@ async def handle_order_approved(body: dict, session: AsyncSession):
     resource = body.get("resource", {})
     order_id = resource.get("id")
     print(f"✅ Заказ одобрен: {order_id}")
-    # Опционально: можно логировать или обновить статус на approved
