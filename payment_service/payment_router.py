@@ -3,10 +3,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import JSONResponse
 
 from payment_service.db import get_session
+from payment_service.handles_payment import (
+    handle_payment_completed,
+    handle_payment_failed,
+    handle_payment_refunded,
+    handle_order_approved,
+)
 from payment_service.schemas import PaymentCreate, PaymentRead, PaymentCreateResponse
 from payment_service.models import Payment, PaymentStatus
 from payment_service.paypal_client import create_paypal_order, capture_paypal_order
 from sqlalchemy import select
+
+from typing import Set
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -116,52 +124,64 @@ async def payment_cancel():
     return JSONResponse({"status": "cancel", "message": "Платеж отменён"})
 
 
+processed_events: Set[str] = set()
+
+# События, означающие, что платеж провалился
+FAILED_EVENTS = {
+    "PAYMENT.CAPTURE.DENIED",
+    "PAYMENT.CAPTURE.FAILED",
+    "PAYMENT.CAPTURE.DECLINED",
+}
+
+
 @router.post("/webhook")
 async def paypal_webhook(
-    request: Request,
-    session: AsyncSession = Depends(get_session),
+    request: Request, session: AsyncSession = Depends(get_session)
 ):
     """
-    Эндпоинт для получения уведомлений от PayPal
+    Эндпоинт для обработки sandbox PayPal вебхуков
     """
 
-    # Получаем данные от PayPal
     body = await request.json()
+    event_id = body.get("id")
     event_type = body.get("event_type")
 
-    print(f"🔔 Получен вебхук: {event_type}")  # Для отладки
-    print(f"📦 Полные данные: {body}")  # Посмотрим структуру
+    print(f"🔔 Вебхук: {event_type} (ID: {event_id})")
 
-    # Обрабатываем событие "платёж захвачен"
-    if event_type == "PAYMENT.CAPTURE.COMPLETED":
-        resource = body.get("resource", {})
+    if not event_id or not event_type:
+        raise HTTPException(status_code=400, detail="Invalid webhook data")
 
-        # Извлекаем order_id
-        order_id = (
-            resource.get("supplementary_data", {})
-            .get("related_ids", {})
-            .get("order_id")
-        )
-        capture_id = resource.get("id")
+    # Защита от повторной обработки
+    if event_id in processed_events:
+        print(f"⚠️ Событие {event_id} уже обработано, пропускаем")
+        return {"status": "ok", "message": "already processed"}
 
-        print(f"💳 Order ID: {order_id}, Capture ID: {capture_id}")
+    try:
+        # Обработка успешной оплаты
+        if event_type == "PAYMENT.CAPTURE.COMPLETED":
+            await handle_payment_completed(body, session)
 
-        if not order_id:
-            print("⚠️ Order ID не найден в вебхуке!")
-            return {"status": "ok"}
+        # Обработка отклонённой или проваленной оплаты
+        elif event_type in FAILED_EVENTS:
+            await handle_payment_failed(body, session)
 
-        # Находим платёж в БД
-        result = await session.execute(
-            select(Payment).where(Payment.paypal_order_id == order_id)
-        )
-        payment = result.scalar_one_or_none()
+        # Обработка возврата средств
+        elif event_type == "PAYMENT.CAPTURE.REFUNDED":
+            await handle_payment_refunded(body, session)
 
-        if payment:
-            payment.status = PaymentStatus.completed
-            payment.paypal_capture_id = capture_id
-            await session.commit()
-            print(f"✅ Платёж {payment.id} обновлён на completed")
+        # Обработка одобренного заказа (user нажал Pay)
+        elif event_type == "CHECKOUT.ORDER.APPROVED":
+            await handle_order_approved(body, session)
+
         else:
-            print(f"❌ Платёж с order_id {order_id} не найден в БД")
+            print(f"ℹ️ Неизвестный event_type: {event_type}")
 
-    return {"status": "ok"}
+        # Помечаем событие как обработанное
+        processed_events.add(event_id)
+
+        return {"status": "ok"}
+
+    except Exception as e:
+        print(f"❌ Ошибка обработки вебхука: {e}")
+        # Всё равно возвращаем 200, чтобы PayPal не повторял webhook
+        return {"status": "error", "message": str(e)}

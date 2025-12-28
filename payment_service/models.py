@@ -15,6 +15,7 @@ class PaymentStatus(str, enum.Enum):
     completed = "completed"  # подтверждён webhook
     failed = "failed"  # ошибка платежа
     cancelled = "cancelled"  # платёж отменён
+    refunded = "refunded"
 
 
 class Payment(Base):
