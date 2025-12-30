@@ -17,6 +17,8 @@ class Settings(BaseSettings):
         "http://notification_service:8001"  # Порт вашего notification service
     )
     NOTIFICATION_SERVICE_TIMEOUT: int = 10
+    
+    MONOLITH_URL: str = "http://monolith:8000"  # URL monolith сервиса
 
     class Config:
         env_file = BASE_DIR / ".env"

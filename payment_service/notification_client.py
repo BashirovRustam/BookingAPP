@@ -1,7 +1,10 @@
+import logging
 import httpx
 from typing import Optional
 from payment_service.notification_payload_schemas import SendReceiptPayload
 from payment_service.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class NotificationClient:
@@ -32,24 +35,24 @@ class NotificationClient:
                 )
 
                 if response.status_code == 202:  # Accepted
-                    print(
+                    logger.info(
                         f"✅ Запрос на отправку чека отправлен в Notification Service"
                     )
                     return True
                 else:
-                    print(
+                    logger.warning(
                         f"⚠️ Notification Service вернул статус {response.status_code}: {response.text}"
                     )
                     return False
 
         except httpx.TimeoutException:
-            print(f"❌ Timeout при обращении к Notification Service")
+            logger.error(f"❌ Timeout при обращении к Notification Service")
             return False
         except httpx.RequestError as e:
-            print(f"❌ Ошибка при обращении к Notification Service: {e}")
+            logger.error(f"❌ Ошибка при обращении к Notification Service: {e}")
             return False
         except Exception as e:
-            print(f"❌ Неожиданная ошибка при отправке в Notification Service: {e}")
+            logger.exception(f"❌ Неожиданная ошибка при отправке в Notification Service: {e}")
             return False
 
 

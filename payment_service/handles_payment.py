@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 import httpx
@@ -6,12 +7,16 @@ from sqlalchemy import select
 from payment_service.models import Payment, PaymentStatus
 from payment_service.notification_client import notification_client
 from payment_service.notification_payload_schemas import SendReceiptPayload
+from payment_service.config import settings
 
-
-NOTIFICATION_URL = "http://notification_service:8001/api/notifications/receipt"
+logger = logging.getLogger(__name__)
 
 
 async def handle_payment_completed(body: dict, session: AsyncSession):
+    """
+    Обработка успешного платежа PayPal.
+    Обновляет статус платежа в БД и отправляет запрос на генерацию PDF чека.
+    """
     resource = body.get("resource", {})
     order_id = (
         resource.get("supplementary_data", {}).get("related_ids", {}).get("order_id")
@@ -19,52 +24,94 @@ async def handle_payment_completed(body: dict, session: AsyncSession):
     capture_id = resource.get("id")
 
     if not order_id or not capture_id:
-        print("⚠️ Некорректный webhook payload")
+        logger.warning("⚠️ Некорректный webhook payload: отсутствует order_id или capture_id")
+        logger.debug(f"Webhook body: {body}")
         return
 
+    # Загружаем платеж
     result = await session.execute(
         select(Payment).where(Payment.paypal_order_id == order_id)
     )
     payment = result.scalar_one_or_none()
 
     if not payment:
-        print(f"❌ Платёж {order_id} не найден")
+        logger.error(f"❌ Платёж с order_id {order_id} не найден в БД")
         return
 
+    # Обновляем статус платежа, если он еще не completed
     if payment.status != PaymentStatus.completed:
         payment.status = PaymentStatus.completed
         payment.paypal_capture_id = capture_id
         await session.commit()
-        print(f"✅ Платёж {payment.id} переведён в completed")
+        logger.info(f"✅ Платёж {payment.id} переведён в статус completed")
     else:
-        print(f"ℹ️ Платёж {payment.id} уже completed — отправим чек повторно")
+        logger.info(f"ℹ️ Платёж {payment.id} уже имеет статус completed — отправляем чек повторно")
 
-    # Формируем payload
-    payload = {
-        "payment_id": str(payment.id),
-        "order_id": payment.paypal_order_id,
-        "capture_id": payment.paypal_capture_id,
-        "amount": str(payment.amount),
-        "currency": payment.currency,
-        "user_email": payment.user.email if payment.user else "test@example.com",
-        "user_name": getattr(payment.user, "name", None) if payment.user else None,
-        "description": payment.description or "Payment",
-        "created_at": payment.created_at.isoformat(),
-        "completed_at": datetime.utcnow().isoformat(),
-    }
+    # Получаем email пользователя
+    user_email = payment.user_email
+    user_name = None
+    
+    # Если email не сохранен в Payment, пытаемся получить через API monolith
+    if not user_email:
+        try:
+            monolith_url = settings.MONOLITH_URL
+            booking_url = f"{monolith_url}/bookings/{payment.booking_id}"
+            
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                booking_resp = await client.get(booking_url)
+                if booking_resp.status_code == 200:
+                    booking_data = booking_resp.json()
+                    user_id = booking_data.get("user_id")
+                    
+                    if user_id:
+                        # Получаем user по user_id
+                        user_url = f"{monolith_url}/users/{user_id}"
+                        user_resp = await client.get(user_url)
+                        if user_resp.status_code == 200:
+                            user_data = user_resp.json()
+                            user_email = user_data.get("email")
+                            user_name = f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}".strip()
+                            if not user_name:
+                                user_name = None
+                            
+                            # Сохраняем email в Payment для будущих использований
+                            if user_email:
+                                payment.user_email = user_email
+                                await session.commit()
+        except Exception as e:
+            logger.warning(f"⚠️ Не удалось получить email через API monolith: {e}")
+    
+    if not user_email:
+        logger.error(f"❌ Не удалось получить email пользователя для платежа {payment.id}")
+        return
 
-    # Отправляем POST на Notification Service
+    # Формируем payload для Notification Service
     try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(NOTIFICATION_URL, json=payload, timeout=10)
-            if resp.status_code == 202:
-                print(
-                    f"📧 PDF чек для платёжа {payment.id} отправлен через Notification Service"
-                )
-            else:
-                print(f"⚠️ Ошибка Notification Service: {resp.status_code}, {resp.text}")
+        payload = SendReceiptPayload(
+            payment_id=str(payment.id),
+            order_id=payment.paypal_order_id or "",
+            capture_id=payment.paypal_capture_id or "",
+            amount=str(payment.amount / 100.0),  # Конвертируем из копеек в основную валюту
+            currency=payment.currency,
+            user_email=user_email,
+            user_name=user_name,
+            description=f"Payment for booking {payment.booking_id}",
+            created_at=payment.created_at.isoformat(),
+            completed_at=datetime.utcnow().isoformat(),
+        )
+        
+        logger.info(f"📤 Отправка запроса на генерацию чека для платежа {payment.id} на email {user_email}")
+        
+        # Отправляем запрос через notification_client
+        success = await notification_client.send_receipt(payload)
+        
+        if success:
+            logger.info(f"✅ Запрос на отправку PDF чека для платежа {payment.id} успешно отправлен в Notification Service")
+        else:
+            logger.error(f"❌ Не удалось отправить запрос на генерацию чека для платежа {payment.id}")
+            
     except Exception as e:
-        print(f"⚠️ Не удалось отправить PDF чек через Notification Service: {e}")
+        logger.exception(f"❌ Критическая ошибка при отправке запроса на генерацию чека: {e}")
 
 
 async def handle_payment_failed(body: dict, session: AsyncSession):

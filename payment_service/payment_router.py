@@ -1,8 +1,10 @@
+import httpx
+import logging
 from fastapi import APIRouter, Depends, status, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import JSONResponse
 
-from payment_service.config import paypal_webhook_settings
+from payment_service.config import paypal_webhook_settings, settings
 from payment_service.db import get_session
 from payment_service.handles_payment import handle_payment_failed
 from payment_service.dispatcher import EVENT_HANDLERS
@@ -13,6 +15,8 @@ from payment_service.paypal_client import create_paypal_order, capture_paypal_or
 from sqlalchemy import select
 
 from typing import Set
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -31,33 +35,56 @@ async def create_payment(
     Создаёт PayPal Order и возвращает approval_url для редиректа пользователя.
     """
 
-    # 1. Создаём Payment в БД
+    # 1. Получаем email пользователя через API monolith
+    user_email = None
+    try:
+        monolith_url = settings.MONOLITH_URL
+        booking_url = f"{monolith_url}/bookings/{payment_data.booking_id}"
+        
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            booking_resp = await client.get(booking_url)
+            if booking_resp.status_code == 200:
+                booking_data = booking_resp.json()
+                user_id = booking_data.get("user_id")
+                
+                if user_id:
+                    # Получаем user по user_id
+                    user_url = f"{monolith_url}/users/{user_id}"
+                    user_resp = await client.get(user_url)
+                    if user_resp.status_code == 200:
+                        user_data = user_resp.json()
+                        user_email = user_data.get("email")
+    except Exception as e:
+        logger.warning(f"⚠️ Не удалось получить email через API monolith при создании платежа: {e}")
+
+    # 2. Создаём Payment в БД
     new_payment = Payment(
         booking_id=payment_data.booking_id,
         amount=payment_data.amount,
         currency=payment_data.currency,
         status=PaymentStatus.created,
+        user_email=user_email,
     )
 
     session.add(new_payment)
     await session.flush()  # Получаем ID без commit
 
     try:
-        # 2. Создаём Order в PayPal
+        # 3. Создаём Order в PayPal
         order_id, approval_url = await create_paypal_order(
             amount=payment_data.amount,
             currency=payment_data.currency,
             booking_id=payment_data.booking_id,
         )
 
-        # 3. Сохраняем PayPal Order ID
+        # 4. Сохраняем PayPal Order ID
         new_payment.paypal_order_id = order_id
         new_payment.status = PaymentStatus.pending
 
         await session.commit()
         await session.refresh(new_payment)
 
-        # 4. Возвращаем данные с approval_url
+        # 5. Возвращаем данные с approval_url
         return PaymentCreateResponse(
             id=new_payment.id,
             booking_id=new_payment.booking_id,

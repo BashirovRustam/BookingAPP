@@ -94,6 +94,14 @@ services:
       - "8002:8002"
     volumes:
       - .:/app
+    depends_on:
+      notification_service:
+        condition: service_started
+      monolith:
+        condition: service_started
+    environment:
+      - MONOLITH_URL=http://monolith:8000
+      - NOTIFICATION_SERVICE_URL=http://notification_service:8001
     restart: unless-stopped
 
 

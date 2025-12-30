@@ -25,7 +25,7 @@ class ReceiptPayload(BaseModel):
     """Схема данных для генерации и отправки чека"""
 
     # Информация о платеже
-    payment_id: int
+    payment_id: str  # UUID в виде строки
     order_id: str
     capture_id: str
     amount: str

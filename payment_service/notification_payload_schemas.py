@@ -7,7 +7,7 @@ class SendReceiptPayload(BaseModel):
     """Payload для отправки в Notification Service"""
 
     # Информация о платеже
-    payment_id: int
+    payment_id: str  # UUID в виде строки
     order_id: str
     capture_id: str
     amount: str  # Передаём как строку для избежания проблем с JSON
@@ -28,7 +28,7 @@ class SendReceiptPayload(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "payment_id": 123,
+                "payment_id": "123e4567-e89b-12d3-a456-426614174000",
                 "order_id": "ORDER-123ABC",
                 "capture_id": "CAPTURE-456DEF",
                 "amount": "99.99",
