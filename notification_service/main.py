@@ -1,8 +1,14 @@
 from fastapi import FastAPI, HTTPException
-from notification_service.schemas import BookingNotificationRequest, NotificationResponse
+
+from notification_service import notifications_router
+from notification_service.schemas import (
+    BookingNotificationRequest,
+    NotificationResponse,
+)
 from notification_service.tasks import send_booking_email
 
 app = FastAPI(title="Notification Service")
+app.include_router(notifications_router.router)
 
 
 @app.post("/notify/booking", response_model=NotificationResponse)
@@ -47,4 +53,3 @@ async def get_task_status(task_id: str):
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
-

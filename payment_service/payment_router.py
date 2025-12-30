@@ -132,10 +132,6 @@ async def paypal_webhook(
     request: Request,
     session: AsyncSession = Depends(get_session),
 ):
-    """
-    Эндпоинт для обработки PayPal Sandbox вебхуков
-    """
-
     body = await request.json()
     event_id = body.get("id")
     event_type = body.get("event_type")
@@ -143,31 +139,25 @@ async def paypal_webhook(
     if not event_id or not event_type:
         raise HTTPException(status_code=400, detail="Invalid webhook data")
 
-    print(f"🔔 Вебхук: {event_type} (ID: {event_id})")
+    print(f"🔔 Webhook: {event_type} ({event_id})")
 
-    # Idempotency check
     if event_id in processed_events:
-        print(f"⚠️ Событие {event_id} уже обработано")
-        return {"status": "ok", "message": "already processed"}
+        print("⚠️ Event already processed")
+        return {"status": "ok"}
 
     try:
-        # 1️⃣ Ищем handler по event_type
         handler = EVENT_HANDLERS.get(event_type)
 
         if handler:
             await handler(body, session)
-
-        # 2️⃣ Группа неуспешных платежей
         elif event_type in paypal_webhook_settings.PAYPAL_FAILED_EVENTS:
             await handle_payment_failed(body, session)
-
         else:
-            print(f"ℹ️ Необрабатываемый event_type: {event_type}")
+            print(f"ℹ️ Ignored event: {event_type}")
 
         processed_events.add(event_id)
         return {"status": "ok"}
 
     except Exception as e:
-        print(f"❌ Ошибка обработки вебхука: {e}")
-        # PayPal всё равно ждёт 200
+        print(f"❌ Webhook error: {e}")
         return {"status": "error"}

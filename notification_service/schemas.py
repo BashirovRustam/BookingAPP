@@ -21,5 +21,24 @@ class NotificationResponse(BaseModel):
     message: str
 
 
+class ReceiptPayload(BaseModel):
+    """Схема данных для генерации и отправки чека"""
 
+    # Информация о платеже
+    payment_id: int
+    order_id: str
+    capture_id: str
+    amount: str
+    currency: str
 
+    # Информация о пользователе
+    user_email: EmailStr
+    user_name: Optional[str] = None
+
+    # Информация о заказе
+    description: str
+    created_at: str  # ISO format
+    completed_at: str  # ISO format
+
+    # Дополнительно
+    transaction_fee: Optional[str] = None
