@@ -1,6 +1,5 @@
 import logging
 import httpx
-from typing import Optional
 from payment_service.notification_payload_schemas import SendReceiptPayload
 from payment_service.config import settings
 
@@ -52,9 +51,10 @@ class NotificationClient:
             logger.error(f"❌ Ошибка при обращении к Notification Service: {e}")
             return False
         except Exception as e:
-            logger.exception(f"❌ Неожиданная ошибка при отправке в Notification Service: {e}")
+            logger.exception(
+                f"❌ Неожиданная ошибка при отправке в Notification Service: {e}"
+            )
             return False
 
 
-# Singleton instance
 notification_client = NotificationClient()

@@ -35,7 +35,6 @@ async def create_paypal_order(amount: int, currency: str, booking_id: int):
         access_token = token_response.json()["access_token"]
 
         # 2. Создаём заказ
-
         amount_value = f"{amount:.2f}"
 
         order_data = {

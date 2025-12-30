@@ -17,9 +17,11 @@ class Settings(BaseSettings):
         "http://notification_service:8001"  # Порт вашего notification service
     )
     NOTIFICATION_SERVICE_TIMEOUT: int = 10
-    
+
     MONOLITH_URL: str = "http://monolith:8000"  # URL monolith сервиса
-    INTERNAL_SERVICE_TOKEN: str = "internal-service-token"  # Токен для внутренних сервисов
+    INTERNAL_SERVICE_TOKEN: str = (
+        "internal-service-token"  # Токен для внутренних сервисов
+    )
 
     class Config:
         env_file = BASE_DIR / ".env"
@@ -27,21 +29,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
-
-# class PayPalWebhookSettings(BaseSettings):
-#     PAYPAL_FAILED_EVENTS: Set[str] = {
-#         "PAYMENT.CAPTURE.DENIED",
-#         "PAYMENT.CAPTURE.FAILED",
-#         "PAYMENT.CAPTURE.DECLINED",
-#     }
-#
-#     PAYPAL_COMPLETED_EVENT: str = "PAYMENT.CAPTURE.COMPLETED"
-#     PAYPAL_REFUNDED_EVENT: str = "PAYMENT.CAPTURE.REFUNDED"
-#     PAYPAL_ORDER_APPROVED_EVENT: str = "CHECKOUT.ORDER.APPROVED"
-#
-#     class Config:
-#         env_prefix = "PAYPAL_"
 
 
 class PayPalWebhookSettings(BaseSettings):
