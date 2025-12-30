@@ -51,33 +51,32 @@ async def handle_payment_completed(body: dict, session: AsyncSession):
     user_email = payment.user_email
     user_name = None
     
-    # Если email не сохранен в Payment, пытаемся получить через API monolith
+    # Если email не сохранен в Payment, пытаемся получить через внутренний API monolith
     if not user_email:
         try:
             monolith_url = settings.MONOLITH_URL
-            booking_url = f"{monolith_url}/bookings/{payment.booking_id}"
+            internal_token = getattr(settings, "INTERNAL_SERVICE_TOKEN", "internal-service-token")
+            internal_url = f"{monolith_url}/bookings/internal/{payment.booking_id}/user-email"
             
             async with httpx.AsyncClient(timeout=5.0) as client:
-                booking_resp = await client.get(booking_url)
-                if booking_resp.status_code == 200:
-                    booking_data = booking_resp.json()
-                    user_id = booking_data.get("user_id")
+                user_resp = await client.get(
+                    internal_url,
+                    headers={"X-Internal-Service": internal_token}
+                )
+                if user_resp.status_code == 200:
+                    user_data = user_resp.json()
+                    user_email = user_data.get("email")
+                    user_name = user_data.get("full_name")
+                    if not user_name:
+                        user_name = None
                     
-                    if user_id:
-                        # Получаем user по user_id
-                        user_url = f"{monolith_url}/users/{user_id}"
-                        user_resp = await client.get(user_url)
-                        if user_resp.status_code == 200:
-                            user_data = user_resp.json()
-                            user_email = user_data.get("email")
-                            user_name = f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}".strip()
-                            if not user_name:
-                                user_name = None
-                            
-                            # Сохраняем email в Payment для будущих использований
-                            if user_email:
-                                payment.user_email = user_email
-                                await session.commit()
+                    # Сохраняем email в Payment для будущих использований
+                    if user_email:
+                        payment.user_email = user_email
+                        await session.commit()
+                        logger.info(f"✅ Email пользователя сохранен в Payment {payment.id}")
+                else:
+                    logger.warning(f"⚠️ Не удалось получить email через внутренний API: {user_resp.status_code} - {user_resp.text}")
         except Exception as e:
             logger.warning(f"⚠️ Не удалось получить email через API monolith: {e}")
     

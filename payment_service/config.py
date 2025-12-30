@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     NOTIFICATION_SERVICE_TIMEOUT: int = 10
     
     MONOLITH_URL: str = "http://monolith:8000"  # URL monolith сервиса
+    INTERNAL_SERVICE_TOKEN: str = "internal-service-token"  # Токен для внутренних сервисов
 
     class Config:
         env_file = BASE_DIR / ".env"
