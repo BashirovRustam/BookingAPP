@@ -8,9 +8,6 @@ from payment_service.notification_client import notification_client
 from payment_service.notification_payload_schemas import SendReceiptPayload
 
 
-NOTIFICATION_URL = "http://notification_service:8001/api/notifications/receipt"
-
-
 async def handle_payment_completed(body: dict, session: AsyncSession):
     resource = body.get("resource", {})
     order_id = (
@@ -22,6 +19,7 @@ async def handle_payment_completed(body: dict, session: AsyncSession):
         print("⚠️ Некорректный webhook payload")
         return
 
+    # 1️⃣ Проверяем статус в базе
     result = await session.execute(
         select(Payment).where(Payment.paypal_order_id == order_id)
     )
@@ -31,38 +29,50 @@ async def handle_payment_completed(body: dict, session: AsyncSession):
         print(f"❌ Платёж {order_id} не найден")
         return
 
+    status_changed = False
     if payment.status != PaymentStatus.completed:
         payment.status = PaymentStatus.completed
         payment.paypal_capture_id = capture_id
         await session.commit()
+        status_changed = True
         print(f"✅ Платёж {payment.id} переведён в completed")
     else:
-        print(f"ℹ️ Платёж {payment.id} уже completed — отправим чек повторно")
+        print(f"ℹ️ Платёж {payment.id} уже в статусе completed")
 
-    # Формируем payload
-    payload = {
-        "payment_id": str(payment.id),
-        "order_id": payment.paypal_order_id,
-        "capture_id": payment.paypal_capture_id,
-        "amount": str(payment.amount),
-        "currency": payment.currency,
-        "user_email": payment.user.email if payment.user else "test@example.com",
-        "user_name": getattr(payment.user, "name", None) if payment.user else None,
-        "description": payment.description or "Payment",
-        "created_at": payment.created_at.isoformat(),
-        "completed_at": datetime.utcnow().isoformat(),
-    }
+    # 2️⃣ Снова проверяем БД через select (чтобы быть уверенными, что коммит прошёл)
+    result = await session.execute(select(Payment).where(Payment.id == payment.id))
+    payment_db = result.scalar_one_or_none()
+    if not payment_db:
+        print(f"❌ Платёж {payment.id} исчез из БД после коммита?!")
+        return
 
-    # Отправляем POST на Notification Service
+    # 3️⃣ Формируем payload для Notification Service
+    receipt_payload = SendReceiptPayload(
+        payment_id=payment_db.id,
+        order_id=payment_db.paypal_order_id,
+        capture_id=payment_db.paypal_capture_id,
+        amount=str(payment_db.amount),
+        currency=payment_db.currency,
+        user_email=payment_db.user.email if payment_db.user else "test@example.com",
+        user_name=getattr(payment_db.user, "name", None) if payment_db.user else None,
+        description=payment_db.description or "Payment",
+        created_at=payment_db.created_at.isoformat(),
+        completed_at=datetime.utcnow().isoformat(),
+    )
+
+    # 4️⃣ Отправляем PDF через Notification Service
+    notification_url = "http://notification_service:8001/api/notifications/receipt"
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.post(NOTIFICATION_URL, json=payload, timeout=10)
+            resp = await client.post(
+                notification_url, json=receipt_payload.model_dump(), timeout=10
+            )
             if resp.status_code == 202:
                 print(
-                    f"📧 PDF чек для платёжа {payment.id} отправлен через Notification Service"
+                    f"📧 PDF чек для платёжа {payment_db.id} поставлен в очередь Notification Service"
                 )
             else:
-                print(f"⚠️ Ошибка Notification Service: {resp.status_code}, {resp.text}")
+                print(f"⚠️ Notification Service вернул {resp.status_code}: {resp.text}")
     except Exception as e:
         print(f"⚠️ Не удалось отправить PDF чек через Notification Service: {e}")
 

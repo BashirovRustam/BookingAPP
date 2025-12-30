@@ -206,3 +206,4 @@ def send_receipt_email(self, receipt_data: dict):
     except Exception as exc:
         print(f"❌ Ошибка отправки чека: {exc}")
         self.retry(exc=exc, countdown=60)
+
