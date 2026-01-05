@@ -22,6 +22,30 @@ services:
       timeout: 3s
       retries: 5
 
+  # Postgres база данных - развернута внутри Docker
+  # Не требуется локальная установка Postgres на ПК
+  # Данные сохраняются в volume postgres_data между перезапусками
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB_NAME:-Booking_DB}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Monolith сервис - основной FastAPI приложение
+  # Подключается к Postgres через имя сервиса 'postgres' в Docker сети
+  # POSTGRES_HOST по умолчанию = 'postgres' (имя сервиса в docker-compose)
   monolith:
     build: .
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -32,11 +56,14 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      postgres:
+        condition: service_healthy  # Ждём пока Postgres будет готов к подключениям
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
+      # Подключение к Postgres в Docker (имя сервиса = 'postgres')
       - POSTGRES_DB_NAME=${POSTGRES_DB_NAME:-Booking_DB}
-      - POSTGRES_HOST=${POSTGRES_HOST:-host.docker.internal}
+      - POSTGRES_HOST=${POSTGRES_HOST:-postgres}  # Имя сервиса Postgres в docker-compose
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
@@ -106,6 +133,7 @@ services:
       - INTERNAL_SERVICE_TOKEN=internal-service-token
     restart: unless-stopped
 
-
+volumes:
+  postgres_data:
 
 
