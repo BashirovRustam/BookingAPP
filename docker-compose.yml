@@ -124,5 +124,19 @@ services:
       INTERNAL_SERVICE_TOKEN: internal-service-token
     restart: unless-stopped
 
+  db_seeder:
+    build: .
+    command: python app/scripts/create_db.py
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB_NAME:-Booking_DB_Docker}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    restart: "no"
+
 volumes:
   postgres_data:
