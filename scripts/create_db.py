@@ -435,7 +435,7 @@ async def create_users(session) -> List[User]:
     if not admin_user:
         admin_user = User(
             email="admin@example.com",
-            hash_password=hash_password("Qwerty123$"),
+            hash_password=hash_password("admin123"),
             first_name="Админ",
             last_name="Админыч",
             role=RolesEnum.ADMIN,
@@ -445,7 +445,7 @@ async def create_users(session) -> List[User]:
     if not regular_user:
         regular_user = User(
             email="user@example.com",
-            hash_password=hash_password("Qwerty123$"),
+            hash_password=hash_password("user123"),
             first_name="Иван",
             last_name="Петров",
             role=RolesEnum.USER,
