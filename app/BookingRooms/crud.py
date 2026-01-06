@@ -1,6 +1,4 @@
 """
-CRUD-операции для модели BookingRooms (связь бронирования с комнатой).
-
 Функции ниже:
 - создают новую запись связи;
 - получают запись по первичному составному ключу;
@@ -8,7 +6,6 @@ CRUD-операции для модели BookingRooms (связь бронир�
 - удаляют связь;
 - возвращают список всех связей.
 
-Все операции используют асинхронную сессию SQLAlchemy.
 """
 
 from typing import List, Optional, Tuple
@@ -155,11 +152,3 @@ async def list_booking_rooms(
     stmt = select(BookingRooms)
     result = await session.execute(stmt)
     return list(result.scalars().all())
-
-
-
-
-
-
-
-

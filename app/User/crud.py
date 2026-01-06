@@ -1,5 +1,4 @@
 """
-CRUD-операции для модели User.
 
 Содержит функции:
 - create_user        — создать нового пользователя;
@@ -10,7 +9,6 @@ CRUD-операции для модели User.
 - delete_user        — удалить пользователя;
 - authenticate_user  — проверить логин и пароль пользователя.
 
-Все функции используют асинхронный AsyncSession SQLAlchemy.
 """
 
 from typing import List, Optional

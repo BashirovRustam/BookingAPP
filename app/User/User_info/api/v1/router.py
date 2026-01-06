@@ -30,3 +30,4 @@ async def read_my_profile(
         last_name=current_user.last_name,
         bookings=bookings,
     )
+

@@ -1,19 +1,3 @@
-"""
-Маршруты (роутер) для работы с сущностью Hotel.
-
-Здесь определены REST-эндпоинты для:
-- получения списка всех отелей;
-- получения одного отеля по его ID;
-- создания нового отеля;
-- обновления существующего отеля;
-- удаления отеля.
-
-Все обработчики используют:
-- асинхронные CRUD-функции из app.Hotel.crud;
-- Pydantic-схемы из app.Hotel.schemas;
-- зависимость AsyncSession из app.db.base.get_session.
-"""
-
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status

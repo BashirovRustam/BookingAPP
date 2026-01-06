@@ -8,7 +8,6 @@ DATABASE_URL = f"sqlite+aiosqlite:///{BASE_DIR}/payment.db"
 
 engine = create_async_engine(DATABASE_URL, echo=True)
 
-# Используйте async_sessionmaker вместо sessionmaker для лучшей типизации
 async_session = async_sessionmaker(
     bind=engine, class_=AsyncSession, expire_on_commit=False
 )

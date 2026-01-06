@@ -20,7 +20,7 @@ from app.db.base import get_session
 from app.config import settings
 
 router = APIRouter(
-    prefix="",
+    prefix="/auth",
     tags=["Auth"],
 )
 
@@ -194,3 +194,4 @@ async def logout(
     await revoke_all_user_refresh_tokens(session=session, user_id=current_user.id)
 
     response.delete_cookie(key="refresh_token", httponly=True, secure=True, samesite="lax")
+

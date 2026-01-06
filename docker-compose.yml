@@ -22,6 +22,24 @@ services:
       timeout: 3s
       retries: 5
 
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB_NAME:-Booking_DB_Docker}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   monolith:
     build: .
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -32,22 +50,22 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      postgres:
+        condition: service_healthy
     environment:
-      - POSTGRES_DB_NAME=${POSTGRES_DB_NAME:-Booking_DB}
-      - POSTGRES_HOST=${POSTGRES_HOST:-host.docker.internal}
-      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
-      - ALGORITHM=${ALGORITHM:-HS256}
-      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
-      - REFRESH_TOKEN_EXPIRE_DAYS=${REFRESH_TOKEN_EXPIRE_DAYS:-30}
-      - NOTIFICATION_SERVICE_URL=http://notification_service:8001
-      - PAYMENT_SERVICE_URL=http://payment_service:8002
-      - MONOLITH_URL=http://localhost:8000
-      - INTERNAL_SERVICE_TOKEN=internal-service-token
+      POSTGRES_DB: ${POSTGRES_DB_NAME:-Booking_DB_Docker}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-30}
+      NOTIFICATION_SERVICE_URL: http://notification_service:8001
+      PAYMENT_SERVICE_URL: http://payment_service:8002
+      MONOLITH_URL: http://localhost:8000
+      INTERNAL_SERVICE_TOKEN: internal-service-token
     restart: unless-stopped
 
   notification_service:
@@ -63,11 +81,11 @@ services:
       mailhog:
         condition: service_healthy
     environment:
-      - REDIS_URL=redis://redis:6379/0
-      - SMTP_HOST=mailhog
-      - SMTP_PORT=1025
-      - SMTP_USE_TLS=false
-      - SMTP_FROM_EMAIL=noreply@booking.local
+      REDIS_URL: redis://redis:6379/0
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USE_TLS: false
+      SMTP_FROM_EMAIL: noreply@booking.local
     restart: unless-stopped
 
   celery_worker:
@@ -81,11 +99,11 @@ services:
       mailhog:
         condition: service_healthy
     environment:
-      - REDIS_URL=redis://redis:6379/0
-      - SMTP_HOST=mailhog
-      - SMTP_PORT=1025
-      - SMTP_USE_TLS=false
-      - SMTP_FROM_EMAIL=noreply@booking.local
+      REDIS_URL: redis://redis:6379/0
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USE_TLS: false
+      SMTP_FROM_EMAIL: noreply@booking.local
     restart: unless-stopped
 
   payment_service:
@@ -101,11 +119,26 @@ services:
       monolith:
         condition: service_started
     environment:
-      - MONOLITH_URL=http://monolith:8000
-      - NOTIFICATION_SERVICE_URL=http://notification_service:8001
-      - INTERNAL_SERVICE_TOKEN=internal-service-token
+      MONOLITH_URL: http://monolith:8000
+      NOTIFICATION_SERVICE_URL: http://notification_service:8001
+      INTERNAL_SERVICE_TOKEN: internal-service-token
     restart: unless-stopped
 
+  db_seeder:
+    build: .
+    command: python -m scripts.create_db
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB_NAME:-Booking_DB_Docker}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    restart: "no"
 
-
-
+volumes:
+  postgres_data:

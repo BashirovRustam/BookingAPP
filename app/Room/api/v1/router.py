@@ -130,3 +130,4 @@ async def delete_room(
             detail=f"Room with id={room_id} not found",
         )
     return None
+

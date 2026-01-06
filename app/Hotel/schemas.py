@@ -1,6 +1,4 @@
 """
-Pydantic схема для модели Hotel (Отель).
-
 - HotelCreate: данные, которые приходят ОТ клиента при создании отеля
 - HotelResponse: данные, которые мы отправляем ОБРАТНО клиенту после сохранения/загрузки отеля
 """
@@ -14,9 +12,13 @@ class HotelBase(BaseModel):
     """Общие поля, используемые в нескольких схемах."""
 
     name: Optional[str] = Field(None, max_length=128, description="Название отеля")
-    location: Optional[str] = Field(None, max_length=256, description="Местоположение отеля")
+    location: Optional[str] = Field(
+        None, max_length=256, description="Местоположение отеля"
+    )
     services: Optional[dict] = Field(default=None, description="Услуги отеля (JSON)")
-    room_quality: Optional[str] = Field(None, max_length=64, description="Качество номеров")
+    room_quality: Optional[str] = Field(
+        None, max_length=64, description="Качество номеров"
+    )
     image_id: Optional[int] = Field(None, description="ID изображения отеля")
 
 
@@ -32,7 +34,9 @@ class HotelCreate(HotelBase):
 
     name: str = Field(..., max_length=128, description="Название отеля")  # type: ignore[assignment]
     location: str = Field(..., max_length=256, description="Местоположение отеля")  # type: ignore[assignment]
-    services: Optional[dict] = Field(default_factory=dict, description="Услуги отеля (JSON)")
+    services: Optional[dict] = Field(
+        default_factory=dict, description="Услуги отеля (JSON)"
+    )
 
 
 class HotelUpdate(HotelBase):
@@ -59,7 +63,3 @@ class HotelResponse(BaseModel):
     image_id: Optional[int]
 
     model_config = ConfigDict(from_attributes=True)
-
-    # class Config:
-    #     # Эта опция позволяет создавать схему напрямую из SQLAlchemy объекта Hotel.
-    #     from_attributes = True

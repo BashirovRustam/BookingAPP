@@ -39,5 +39,5 @@ class PaymentCreateResponse(BaseModel):
     currency: str
     status: PaymentStatus
     paypal_order_id: str
-    approval_url: str  # ← Вот эта ссылка для монолита
+    approval_url: str
     created_at: datetime

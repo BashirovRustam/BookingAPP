@@ -1,0 +1,4 @@
+PAYPAL_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxx # id клиента тестового PayPal
+PAYPAL_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxx # секретный ключ к сервису
+PAYPAL_MODE=sandbox # вид тестевого режима в платежной системе
+PAYPAL_API_BASE=https://api-m.sandbox.paypal.com

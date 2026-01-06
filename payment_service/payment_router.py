@@ -40,7 +40,7 @@ async def create_payment(
     try:
         monolith_url = settings.MONOLITH_URL
         internal_token = getattr(settings, "INTERNAL_SERVICE_TOKEN", "internal-service-token")
-        internal_url = f"{monolith_url}/bookings/internal/{payment_data.booking_id}/user-email"
+        internal_url = f"{monolith_url}/api/v1/bookings/internal/{payment_data.booking_id}/user-email"
         
         async with httpx.AsyncClient(timeout=5.0) as client:
             user_resp = await client.get(
