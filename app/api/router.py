@@ -1,7 +1,6 @@
 """
 Общий агрегатор API роутеров версии v1.
 
-Все доменные роутеры подключаются здесь с единым префиксом /api/v1.
 """
 
 from fastapi import APIRouter
@@ -16,7 +15,6 @@ from app.User.User_info.api.v1.router import router as user_info_router
 
 api_router = APIRouter(prefix="/api/v1")
 
-# Подключаем все доменные роутеры
 api_router.include_router(hotel_router)
 api_router.include_router(room_router)
 api_router.include_router(booking_router)

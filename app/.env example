@@ -1,0 +1,9 @@
+POSTGRES_DB_NAME=Booking_DB_Docker # имя БД в контейнере
+POSTGRES_HOST=postgres # адрес БД, при развертывании в контейнерах указывается название контейнера
+POSTGRES_PORT=5432 # порт для подключения к БД
+POSTGRES_USER=postgres # логин для подключения к БД
+POSTGRES_PASSWORD=postgres # пароль для подключения к БД
+
+SECRET_KEY="Secret_Key" # ключ для кодирования и декодирования JWT-токенов
+ALGORITHM="HS256" # алгоритм, использованный для генерации подписи
+ACCESS_TOKEN_EXPIRE_MINUTES=30 # время жизни acces token

@@ -126,7 +126,9 @@ services:
 
   db_seeder:
     build: .
-    command: python app/scripts/create_db.py
+    command: python -m scripts.create_db
+    volumes:
+      - .:/app
     depends_on:
       postgres:
         condition: service_healthy

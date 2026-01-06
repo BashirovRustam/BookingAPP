@@ -1,7 +1,4 @@
 """
-Маршруты для работы с таблицей BookingRooms (связь бронирования и комнаты).
-
-Конвенция ID:
 - в путях, где требуется {id}, используется составной идентификатор
   вида "<booking_id>-<room_id>" (например, "12-34").
 """
@@ -12,7 +9,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.BookingRooms import crud as booking_rooms_crud
-from app.BookingRooms.schemas import BookingRoomsCreate, BookingRoomsResponse, BookingRoomsUpdate
+from app.BookingRooms.schemas import (
+    BookingRoomsCreate,
+    BookingRoomsResponse,
+    BookingRoomsUpdate,
+)
 from app.User.User_auth.auth import admin_required
 from app.db.base import get_session
 
@@ -181,4 +182,3 @@ async def delete_booking_room(
         )
 
     return None
-

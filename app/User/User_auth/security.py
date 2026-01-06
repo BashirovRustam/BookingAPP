@@ -9,9 +9,6 @@ def hash_password(password: str) -> str:
     """
     Хеширует пароль с использованием passlib (Argon2).
 
-    Argon2 не имеет ограничения в 72 байта, поэтому можно использовать
-    пароли любой длины.
-
     :param password: Пароль в открытом виде (plain text).
     :return: Хеш пароля в виде строки (Argon2 hash).
     """

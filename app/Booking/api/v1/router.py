@@ -1,5 +1,4 @@
 """
-Маршруты (роутер) для работы с сущностью Booking (Бронирование).
 
 Эндпоинты:
 - GET    /bookings            — список всех бронирований
@@ -8,10 +7,6 @@
 - PATCH  /bookings/{id}       — обновить существующее бронирование
 - DELETE /bookings/{id}       — удалить бронирование
 
-Все обработчики:
-- используют асинхронный AsyncSession из SQLAlchemy;
-- опираются на Pydantic-схемы BookingCreate/BookingResponse;
-- вызывают CRUD-функции из app.Booking.crud.
 """
 
 from typing import List, Optional
@@ -319,13 +314,13 @@ async def get_booking_user_email_internal(
     # Простая проверка, что запрос идет от внутреннего сервиса
     # В продакшене можно использовать более сложную аутентификацию
     internal_token = os.getenv("INTERNAL_SERVICE_TOKEN", "internal-service-token")
-    
+
     if x_internal_service != internal_token:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied. This endpoint is for internal services only.",
         )
-    
+
     # Получаем booking
     booking = await get_booking_by_id(session, booking_id)
     if not booking:
@@ -333,7 +328,7 @@ async def get_booking_user_email_internal(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Booking with id={booking_id} not found",
         )
-    
+
     # Получаем user по user_id
     user = await user_crud.get_user_by_id(session=session, user_id=booking.user_id)
     if not user:
@@ -341,7 +336,7 @@ async def get_booking_user_email_internal(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User with id={booking.user_id} not found",
         )
-    
+
     return {
         "user_id": user.id,
         "email": user.email,
@@ -349,4 +344,3 @@ async def get_booking_user_email_internal(
         "last_name": user.last_name,
         "full_name": f"{user.first_name} {user.last_name}",
     }
-

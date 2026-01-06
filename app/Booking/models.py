@@ -13,7 +13,7 @@ from app.User.models import User
 class BookingStatus(str, Enum):
     PENDING = "PENDING"  # Ожидает подтверждения
     CONFIRMED = "CONFIRMED"  # Подтверждено
-    CANCELLED = "CANCELLED"  # Отменено (опционально, но полезно)
+    CANCELLED = "CANCELLED"
 
 
 class Booking(Base):
@@ -56,6 +56,5 @@ class Booking(Base):
             return self.booking_rooms[0].room_id
         if self.rooms:
             first_room = self.rooms[0]
-            # room.id может быть None, если объект ещё не сохранён
             return getattr(first_room, "id", None)
         return None
