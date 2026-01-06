@@ -14,16 +14,15 @@ from app.Booking.models import BookingStatus
 
 class BookingCreate(BaseModel):
     date_from: date = Field(
-        ..., description="Дата начала проживания", example="2025-12-10"
+        ..., description="Дата начала проживания", example="2026-01-01"
     )
     date_to: date = Field(
-        ..., description="Дата окончания проживания", example="2025-12-15"
+        ..., description="Дата окончания проживания", example="2026-01-15"
     )
     price_per_day: int = Field(
-        ..., gt=0, description="Стоимость за день", example="15000.00"
+        ..., gt=0, description="Стоимость за день", example="5000"
     )
     room_id: int = Field(..., gt=0, description="ID комнаты для бронирования")
-    # user_id больше не требуется - он берётся из JWT токена автоматически
 
     totals_day: int = Field(
         default=None, description="Количество дней проживания (вычисляется сервером)"

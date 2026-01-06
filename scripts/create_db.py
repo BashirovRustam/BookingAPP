@@ -20,7 +20,10 @@ KZ_HOTELS = [
     {
         "name": "Астана Премиум Кервансарай",
         "location": "Астана, бульвар Нуржол",
-        "services": {"SPA": "хаммам и бассейн", "Трансфер": "аэропорт Нурсултан Назарбаев"},
+        "services": {
+            "SPA": "хаммам и бассейн",
+            "Трансфер": "аэропорт Нурсултан Назарбаев",
+        },
         "room_quality": "премиум",
         "image_id": 501,
     },
@@ -55,7 +58,10 @@ KZ_HOTELS = [
     {
         "name": "Павлодар Ертіс Гранд",
         "location": "Павлодар, набережная Иртыша",
-        "services": {"Ресторан": "европейская кухня", "Фитнес": "современное оборудование"},
+        "services": {
+            "Ресторан": "европейская кухня",
+            "Фитнес": "современное оборудование",
+        },
         "room_quality": "комфорт",
         "image_id": 506,
     },
@@ -417,41 +423,49 @@ KZ_ROOMS = [
 async def create_users(session) -> List[User]:
     """Создает пользователей в базе данных."""
     # Проверяем, существуют ли уже пользователи
-    admin_user = await session.scalar(select(User).where(User.email == "admin@mail.ru"))
-    regular_user = await session.scalar(select(User).where(User.email == "users@mail.ru"))
-    
+    admin_user = await session.scalar(
+        select(User).where(User.email == "admin@example.com")
+    )
+    regular_user = await session.scalar(
+        select(User).where(User.email == "user@example.com")
+    )
+
     users_to_create = []
-    
+
     if not admin_user:
         admin_user = User(
-            email="admin@mail.ru",
+            email="admin@example.com",
             hash_password=hash_password("Qwerty123$"),
             first_name="Админ",
             last_name="Админыч",
             role=RolesEnum.ADMIN,
         )
         users_to_create.append(admin_user)
-    
+
     if not regular_user:
         regular_user = User(
-            email="users@mail.ru",
+            email="user@example.com",
             hash_password=hash_password("Qwerty123$"),
             first_name="Иван",
             last_name="Петров",
             role=RolesEnum.USER,
         )
         users_to_create.append(regular_user)
-    
+
     if users_to_create:
         session.add_all(users_to_create)
         await session.flush()
         print(f"Создано пользователей: {len(users_to_create)}")
     else:
         print("Пользователи уже существуют")
-        admin_user = await session.scalar(select(User).where(User.email == "admin@mail.ru"))
-        regular_user = await session.scalar(select(User).where(User.email == "users@mail.ru"))
+        admin_user = await session.scalar(
+            select(User).where(User.email == "admin@mail.ru")
+        )
+        regular_user = await session.scalar(
+            select(User).where(User.email == "users@mail.ru")
+        )
         users_to_create = [admin_user, regular_user]
-    
+
     return users_to_create
 
 
@@ -459,30 +473,32 @@ async def create_hotels(session) -> List[Hotel]:
     """Создает отели в базе данных."""
     # Проверяем количество существующих отелей
     existing_count = await session.scalar(select(func.count(Hotel.id)))
-    
+
     if existing_count >= 30:
         print(f"Отелей уже достаточно: {existing_count}")
         result = await session.scalars(select(Hotel))
         return list(result)
-    
+
     # Создаем недостающие отели
     hotels_to_create = []
     for hotel_data in KZ_HOTELS:
         # Проверяем, существует ли отель с таким именем
-        existing = await session.scalar(select(Hotel).where(Hotel.name == hotel_data["name"]))
+        existing = await session.scalar(
+            select(Hotel).where(Hotel.name == hotel_data["name"])
+        )
         if not existing:
             hotel = Hotel(**hotel_data)
             hotels_to_create.append(hotel)
-    
+
     if hotels_to_create:
         session.add_all(hotels_to_create)
         await session.flush()
         print(f"Создано отелей: {len(hotels_to_create)}")
-    
+
     # Получаем все отели
     result = await session.scalars(select(Hotel))
     all_hotels = list(result)
-    
+
     return all_hotels
 
 
@@ -490,17 +506,19 @@ async def create_rooms(session, hotels: List[Hotel]) -> List[Room]:
     """Создает комнаты в базе данных."""
     # Проверяем количество существующих комнат
     existing_count = await session.scalar(select(func.count(Room.id)))
-    
+
     if existing_count >= 20:
         print(f"Комнат уже достаточно: {existing_count}")
         result = await session.scalars(select(Room))
         return list(result)
-    
+
     # Создаем недостающие комнаты
     rooms_to_create = []
     for room_data in KZ_ROOMS:
         # Проверяем, существует ли комната с таким именем
-        existing = await session.scalar(select(Room).where(Room.name == room_data["name"]))
+        existing = await session.scalar(
+            select(Room).where(Room.name == room_data["name"])
+        )
         if not existing:
             hotel_idx = room_data["hotel_idx"]
             if hotel_idx < len(hotels):
@@ -515,16 +533,16 @@ async def create_rooms(session, hotels: List[Hotel]) -> List[Room]:
                     image_id=room_data["image_id"],
                 )
                 rooms_to_create.append(room)
-    
+
     if rooms_to_create:
         session.add_all(rooms_to_create)
         await session.flush()
         print(f"Создано комнат: {len(rooms_to_create)}")
-    
+
     # Получаем все комнаты
     result = await session.scalars(select(Room))
     all_rooms = list(result)
-    
+
     return all_rooms
 
 
@@ -533,39 +551,41 @@ async def create_bookings(session, users: List[User], rooms: List[Room]) -> None
     if not rooms:
         print("Нет комнат для создания бронирований")
         return
-    
+
     if not users:
         print("Нет пользователей для создания бронирований")
         return
-    
+
     # Проверяем существующие бронирования
     existing_count = await session.scalar(select(func.count(Booking.id)))
-    
+
     if existing_count >= 10:
         print(f"Бронирований уже достаточно: {existing_count}")
         return
-    
+
     # Создаем бронирования
     random.seed(42)  # Для воспроизводимости
     bookings_to_create = []
     start_date = date.today()
-    
+
     # Создаем 10-15 бронирований
     for i in range(15):
         user = random.choice(users)
         room = random.choice(rooms)
-        
+
         # Случайные даты в будущем
         offset_days = random.randint(1, 60)
         stay_length = random.randint(1, 7)
         arrival = start_date + timedelta(days=offset_days)
         departure = arrival + timedelta(days=stay_length)
-        
+
         total_cost = room.price_per_day * stay_length
-        
+
         # Случайный статус
-        status = random.choice([BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.CANCELLED])
-        
+        status = random.choice(
+            [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.CANCELLED]
+        )
+
         booking = Booking(
             date_from=arrival,
             date_to=departure,
@@ -577,7 +597,7 @@ async def create_bookings(session, users: List[User], rooms: List[Room]) -> None
         )
         booking.rooms.append(room)
         bookings_to_create.append(booking)
-    
+
     if bookings_to_create:
         session.add_all(bookings_to_create)
         await session.flush()
@@ -590,32 +610,32 @@ async def main() -> None:
     """Основная функция для наполнения базы данных."""
     print("Инициализация моделей...")
     await init_models()
-    
+
     print("Подключение к базе данных...")
     async with AsyncSessionFactory() as session:
         print("\n=== Создание пользователей ===")
         users = await create_users(session)
-        
+
         print("\n=== Создание отелей ===")
         hotels = await create_hotels(session)
-        
+
         print("\n=== Создание комнат ===")
         rooms = await create_rooms(session, hotels)
-        
+
         print("\n=== Создание бронирований ===")
         await create_bookings(session, users, rooms)
-        
+
         print("\n=== Сохранение изменений ===")
         await session.commit()
         print("Все данные успешно сохранены в базу данных!")
-        
+
         # Выводим статистику
         print("\n=== Статистика ===")
         users_count = await session.scalar(select(func.count(User.id)))
         hotels_count = await session.scalar(select(func.count(Hotel.id)))
         rooms_count = await session.scalar(select(func.count(Room.id)))
         bookings_count = await session.scalar(select(func.count(Booking.id)))
-        
+
         print(f"Пользователей: {users_count}")
         print(f"Отелей: {hotels_count}")
         print(f"Комнат: {rooms_count}")
@@ -628,4 +648,3 @@ if __name__ == "__main__":
 """
 docker compose run --rm db_seeder
 """
-
