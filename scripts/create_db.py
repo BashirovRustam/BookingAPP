@@ -445,7 +445,7 @@ async def create_users(session) -> List[User]:
     if not regular_user:
         regular_user = User(
             email="user@example.com",
-            hash_password=hash_password("user123"),
+            hash_password=hash_password("user12345"),
             first_name="Иван",
             last_name="Петров",
             role=RolesEnum.USER,
@@ -459,10 +459,10 @@ async def create_users(session) -> List[User]:
     else:
         print("Пользователи уже существуют")
         admin_user = await session.scalar(
-            select(User).where(User.email == "admin@mail.ru")
+            select(User).where(User.email == "admin@example.com")
         )
         regular_user = await session.scalar(
-            select(User).where(User.email == "users@mail.ru")
+            select(User).where(User.email == "user@example.com")
         )
         users_to_create = [admin_user, regular_user]
 

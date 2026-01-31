@@ -271,7 +271,7 @@ docker compose run --rm db_seeder
   <tr>
     <td align="center">👤 <strong>User</strong></td>
     <td><code>user@example.com</code></td>
-    <td><code>user123</code></td>
+    <td><code>user12345</code></td>
     <td>Стандартный пользователь</td>
   </tr>
 </tbody>

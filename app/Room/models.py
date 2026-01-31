@@ -22,11 +22,13 @@ class Room(Base):
     booking_rooms: Mapped[List["BookingRooms"]] = relationship(
         back_populates="room",
         cascade="all, delete-orphan",
+        overlaps="booking",
     )
     booking: Mapped[List["Booking"]] = relationship(
         "Booking",
         secondary="booking_rooms",
         back_populates="rooms",
+        overlaps="booking_rooms,room,booking",
     )
 
 

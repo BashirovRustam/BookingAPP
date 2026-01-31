@@ -37,10 +37,12 @@ class Booking(Base):
         "Room",
         secondary="booking_rooms",
         back_populates="booking",
+        overlaps="booking_rooms",
     )
     booking_rooms: Mapped[List["BookingRooms"]] = relationship(
         back_populates="booking",
         cascade="all, delete-orphan",
+        overlaps="rooms",
     )
 
     def __str__(self) -> str:
