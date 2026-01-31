@@ -4,8 +4,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Dependencies.filters import HotelFilter
-from app.Hotel import crud as hotel_crud
 from app.Hotel.schemas import HotelCreate, HotelResponse, HotelUpdate
+from app.services.HotelServices import (
+    create_hotel as service_create_hotel,
+    delete_hotel as service_delete_hotel,
+    get_all_hotels as service_get_all_hotels,
+    get_hotel_by_id as service_get_hotel_by_id,
+    get_rooms_by_hotel_id as service_get_rooms_by_hotel_id,
+    update_hotel as service_update_hotel,
+)
 from app.Dependencies.pagination import Pagination, get_pagination
 from app.Room.schemas import RoomRead
 from app.User.User_auth.auth import admin_required
@@ -32,7 +39,7 @@ async def list_hotels(
     Вернуть список всех отелей из базы данных.
     """
 
-    hotels = await hotel_crud.get_all_hotels(
+    hotels = await service_get_all_hotels(
         session=session,
         pagination=pagination,
         filters=filters,
@@ -55,7 +62,7 @@ async def get_hotel(
     Если отель не найден — вернуть HTTP 404.
     """
 
-    hotel = await hotel_crud.get_hotel_by_id(session=session, hotel_id=hotel_id)
+    hotel = await service_get_hotel_by_id(session=session, hotel_id=hotel_id)
     if hotel is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -79,7 +86,7 @@ async def list_rooms_by_hotel(
     Вернуть список всех комнат, принадлежащих конкретному отелю.
     """
 
-    return await hotel_crud.get_rooms_by_hotel_id(
+    return await service_get_rooms_by_hotel_id(
         session=session,
         hotel_id=hotel_id,
         pagination=pagination,
@@ -101,7 +108,7 @@ async def create_hotel(
     Создать новый отель и вернуть его данные.
     """
 
-    hotel = await hotel_crud.create_hotel(session=session, hotel_in=hotel_in)
+    hotel = await service_create_hotel(session=session, hotel_in=hotel_in)
     return hotel
 
 
@@ -122,7 +129,7 @@ async def update_hotel(
     Если отель не найден — вернуть HTTP 404.
     """
 
-    hotel = await hotel_crud.update_hotel(
+    hotel = await service_update_hotel(
         session=session,
         hotel_id=hotel_id,
         hotel_in=hotel_in,
@@ -153,7 +160,7 @@ async def delete_hotel(
     Если отель не найден — вернуть HTTP 404.
     """
 
-    deleted = await hotel_crud.delete_hotel(session=session, hotel_id=hotel_id)
+    deleted = await service_delete_hotel(session=session, hotel_id=hotel_id)
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

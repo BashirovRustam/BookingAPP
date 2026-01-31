@@ -2,10 +2,16 @@ import pytest
 
 from app.Dependencies.filters import RoomFilter
 from app.Dependencies.pagination import Pagination
-from app.Room import crud
 from app.Room import models
 from app.Room import schemas
 from app.Room.models import Room
+from app.services.RoomServices import (
+    create_room,
+    delete_room,
+    get_all_rooms,
+    get_room_by_id,
+    update_room,
+)
 
 
 # ============================================================================
@@ -56,7 +62,7 @@ async def test_get_rooms_filter_by_min_price(db_session, multiple_rooms):
     filters = RoomFilter(price_min=1500)
 
     # Act
-    result = await crud.get_all_rooms(db_session, pagination, filters)
+    result = await get_all_rooms(db_session, pagination, filters)
 
     # Assert
     assert len(result) == 3  # Должно быть 3 комнаты
@@ -81,7 +87,7 @@ async def test_get_rooms_filter_by_max_price(db_session, multiple_rooms):
     filters = RoomFilter(price_max=1500)
 
     # Act
-    result = await crud.get_all_rooms(db_session, pagination, filters)
+    result = await get_all_rooms(db_session, pagination, filters)
 
     # Assert
     assert len(result) == 3
@@ -106,7 +112,7 @@ async def test_get_rooms_filter_by_price_range(db_session, multiple_rooms):
     filters = RoomFilter(price_min=1000, price_max=2000)
 
     # Act
-    result = await crud.get_all_rooms(db_session, pagination, filters)
+    result = await get_all_rooms(db_session, pagination, filters)
 
     # Assert
     assert len(result) == 3
@@ -130,7 +136,7 @@ async def test_get_rooms_filter_no_matches(db_session, multiple_rooms):
     filters = RoomFilter(price_min=5000)
 
     # Act
-    result = await crud.get_all_rooms(db_session, pagination, filters)
+    result = await get_all_rooms(db_session, pagination, filters)
 
     # Assert
     assert len(result) == 0  # Пустой список, не None!
@@ -245,7 +251,7 @@ async def test_get_rooms_filter_and_pagination(db_session, multiple_rooms):
     pagination = Pagination(limit=2, offset=0)
 
     # Act
-    result = await crud.get_all_rooms(db_session, pagination, filters)
+    result = await get_all_rooms(db_session, pagination, filters)
 
     # Assert
     assert len(result) == 2
@@ -314,7 +320,7 @@ async def test_get_rooms_exact_price_match(db_session, multiple_rooms):
     filters = RoomFilter(price_min=1000, price_max=1000)
 
     # Act
-    result = await crud.get_all_rooms(db_session, pagination, filters)
+    result = await get_all_rooms(db_session, pagination, filters)
 
     # Assert
     assert len(result) == 1
@@ -353,7 +359,7 @@ async def test_create_room(db_session, created_room_fix):
     assert room.hotel_id == 1
 
     # Дополнительная проверка: объект реально есть в БД
-    room_db = await crud.get_room_by_id(db_session, room.id)
+    room_db = await get_room_by_id(db_session, room.id)
 
     assert room_db is not None
     assert room_db.id == room.id
@@ -362,7 +368,7 @@ async def test_create_room(db_session, created_room_fix):
 @pytest.mark.anyio
 async def test_get_room_by_id(db_session, created_room_fix):
     room_id = created_room_fix.id
-    room = await crud.get_room_by_id(db_session, room_id)  # вызываем CRUD функцию
+    room = await get_room_by_id(db_session, room_id)  # вызываем CRUD функцию
 
     assert room is not None
     assert room.id == room_id
@@ -378,7 +384,7 @@ async def test_update_room(db_session, created_room_fix):
         price_per_day=1500,
     )
 
-    updated_room = await crud.update_room(db_session, room_id, update_data)
+    updated_room = await update_room(db_session, room_id, update_data)
 
     assert updated_room.name == "Updated room"
     assert updated_room.price_per_day == 1500
@@ -390,8 +396,8 @@ async def test_delete_room(db_session, created_room_fix):
     hotel_id = created_room_fix.id
 
     # Вызываем функцию удаления
-    await crud.delete_room(db_session, hotel_id)
+    await delete_room(db_session, hotel_id)
 
     # Проверяем что объект удалён
-    deleted = await crud.get_room_by_id(db_session, hotel_id)
+    deleted = await get_room_by_id(db_session, hotel_id)
     assert deleted is None

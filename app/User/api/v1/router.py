@@ -7,9 +7,16 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.User import crud as user_crud
 from app.User.User_auth.auth import admin_required
 from app.User.schemas import UserCreate, UserRead, UserUpdate
+from app.services.UserServices import (
+    create_user as service_create_user,
+    delete_user as service_delete_user,
+    get_all_users as service_get_all_users,
+    get_user_by_email as service_get_user_by_email,
+    get_user_by_id as service_get_user_by_id,
+    update_user as service_update_user,
+)
 from app.db.base import get_session
 
 
@@ -32,7 +39,7 @@ async def list_users(
     Вернуть список всех пользователей.
     """
 
-    users = await user_crud.get_all_users(session=session)
+    users = await service_get_all_users(session=session)
     return users
 
 
@@ -50,7 +57,7 @@ async def get_user(
     Вернуть одного пользователя по его ID.
     """
 
-    user = await user_crud.get_user_by_id(session=session, user_id=user_id)
+    user = await service_get_user_by_id(session=session, user_id=user_id)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -74,7 +81,7 @@ async def get_user_by_email(
     Найти пользователя по email.
     """
 
-    user = await user_crud.get_user_by_email(session=session, email=email)
+    user = await service_get_user_by_email(session=session, email=email)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -99,7 +106,7 @@ async def create_user(
     Создать нового пользователя.
     """
 
-    user = await user_crud.create_user(session=session, user_in=payload)
+    user = await service_create_user(session=session, user_in=payload)
     if user is None:
         # Пользователь с таким email уже существует
         raise HTTPException(
@@ -125,7 +132,7 @@ async def update_user(
     Обновить данные пользователя.
     """
 
-    user = await user_crud.update_user(
+    user = await service_update_user(
         session=session,
         user_id=user_id,
         user_in=payload,
@@ -154,7 +161,7 @@ async def delete_user(
     Удалить пользователя по ID.
     """
 
-    deleted = await user_crud.delete_user(session=session, user_id=user_id)
+    deleted = await service_delete_user(session=session, user_id=user_id)
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

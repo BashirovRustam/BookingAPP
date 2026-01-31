@@ -17,13 +17,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 
-from app.Booking import crud as booking_crud
-from app.Booking.crud import get_booking_by_id
 from app.Booking.models import BookingStatus
 from app.Booking.schemas import BookingCreate, BookingResponse, BookingUpdate
+from app.services.BookingServices import (
+    create_booking as service_create_booking,
+    delete_booking as service_delete_booking,
+    get_all_bookings as service_get_all_bookings,
+    get_booking_by_id as service_get_booking_by_id,
+    update_booking as service_update_booking,
+    confirm_booking as service_confirm_booking,
+    RoomNotAvailableError,
+    BookingNotFoundError,
+    BookingInvalidStatusError,
+)
 from app.User.User_auth.auth import get_current_user, admin_required
 from app.User.models import User
-from app.User import crud as user_crud
+from app.services.UserServices import get_user_by_id as service_get_user_by_id
 from app.db.base import get_session
 from app.Room.models import Room
 
@@ -55,7 +64,7 @@ async def list_bookings(
     Вернуть список всех бронирований.
     """
 
-    bookings = await booking_crud.get_all_bookings(session=session)
+    bookings = await service_get_all_bookings(session=session)
     return bookings
 
 
@@ -75,7 +84,7 @@ async def get_booking(
     Если бронирование не найдено — вернуть HTTP 404.
     """
 
-    booking = await booking_crud.get_booking_by_id(
+    booking = await service_get_booking_by_id(
         session=session,
         booking_id=booking_id,
     )
@@ -179,26 +188,21 @@ async def confirm_booking(
     """
     Подтвердить бронирование (изменить статус с PENDING на CONFIRMED).
     """
-    from app.Booking.models import BookingStatus
-
-    booking = await booking_crud.get_booking_by_id(
-        session=session, booking_id=booking_id
-    )
-    if booking is None:
+    try:
+        booking = await service_confirm_booking(
+            session=session,
+            booking_id=booking_id,
+        )
+    except BookingNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Booking with id={booking_id} not found",
         )
-
-    if booking.status != BookingStatus.PENDING:
+    except BookingInvalidStatusError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Booking is already {booking.status.value}",
+            detail=str(e),
         )
-
-    booking.status = BookingStatus.CONFIRMED
-    await session.commit()
-    await session.refresh(booking, attribute_names=["booking_rooms", "rooms"])
 
     return booking
 
@@ -251,7 +255,7 @@ async def delete_booking(
     Если запись не найдена — вернуть HTTP 404.
     """
 
-    deleted = await booking_crud.delete_booking(
+    deleted = await service_delete_booking(
         session=session,
         booking_id=booking_id,
     )
@@ -322,7 +326,7 @@ async def get_booking_user_email_internal(
         )
 
     # Получаем booking
-    booking = await get_booking_by_id(session, booking_id)
+    booking = await service_get_booking_by_id(session=session, booking_id=booking_id)
     if not booking:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -330,7 +334,7 @@ async def get_booking_user_email_internal(
         )
 
     # Получаем user по user_id
-    user = await user_crud.get_user_by_id(session=session, user_id=booking.user_id)
+    user = await service_get_user_by_id(session=session, user_id=booking.user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

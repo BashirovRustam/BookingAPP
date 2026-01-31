@@ -1,113 +1,72 @@
-from typing import List, Optional
+"""
+CRUD — слой работы с БД для Hotel (отель).
+
+Только операции с БД, без бизнес-логики. Логика — в app.services.HotelServices.
+"""
+
+from typing import Any, List
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Dependencies.filters import HotelFilter
-from app.Hotel.models import Hotel
-from app.Hotel.schemas import HotelCreate, HotelUpdate
 from app.Dependencies.pagination import Pagination
+from app.Hotel.models import Hotel
 from app.Room.models import Room
 
 
-async def create_hotel(session: AsyncSession, hotel_in: HotelCreate) -> Hotel:
-    """
-    Создать новый отель в базе данных.
-
-    :param session: Асинхронная сессия работы с базой данных.
-    :param hotel_in: Данные для создания отеля (Pydantic-схема HotelCreate).
-    :return: Созданный ORM-объект Hotel.
-    """
-
-    new_hotel = Hotel(
-        name=hotel_in.name,
-        location=hotel_in.location,
-        services=hotel_in.services,
-        room_quality=hotel_in.room_quality,
-        image_id=hotel_in.image_id,
-    )
-
+async def create_hotel(session: AsyncSession, **kwargs: Any) -> Hotel:
+    """Вставить отель в БД. Поля передаются именованными аргументами."""
+    new_hotel = Hotel(**kwargs)
     session.add(new_hotel)
     await session.commit()
     await session.refresh(new_hotel)
-
     return new_hotel
 
 
-async def get_hotel_by_id(session: AsyncSession, hotel_id: int) -> Optional[Hotel]:
-    """
-    Получить отель по его уникальному идентификатору.
-
-    :param session: Асинхронная сессия работы с базой данных.
-    :param hotel_id: ID отеля, который нужно найти.
-    :return: ORM-объект Hotel, если найден, иначе None.
-    """
-
+async def get_hotel_by_id(
+    session: AsyncSession,
+    hotel_id: int,
+) -> Hotel | None:
+    """Получить отель по ID."""
     stmt = select(Hotel).where(Hotel.id == hotel_id)
     result = await session.execute(stmt)
-    hotel: Optional[Hotel] = result.scalar_one_or_none()
-
-    return hotel
+    return result.scalar_one_or_none()
 
 
 async def update_hotel(
     session: AsyncSession,
     hotel_id: int,
-    hotel_in: HotelUpdate,
-) -> Optional[Hotel]:
-    """
-    Обновить данные существующего отеля по ID.
-
-    :param session: Асинхронная сессия работы с базой данных.
-    :param hotel_id: ID отеля, который нужно обновить.
-    :param hotel_in: Pydantic-схема с данными для обновления отеля.
-    :return: Обновлённый ORM-объект Hotel или None, если отель не найден.
-    """
-
-    update_data = hotel_in.model_dump(exclude_unset=True)
-
+    update_data: dict,
+) -> Hotel | None:
+    """Обновить отель по ID. update_data — словарь полей."""
     if not update_data:
-        # Если ничего не передано, просто вернём текущий отель (если он есть)
-        return await get_hotel_by_id(session, hotel_id)
+        return await get_hotel_by_id(session=session, hotel_id=hotel_id)
 
     stmt = (
-        update(Hotel).where(Hotel.id == hotel_id).values(**update_data).returning(Hotel)
+        update(Hotel)
+        .where(Hotel.id == hotel_id)
+        .values(**update_data)
+        .returning(Hotel)
     )
-
     result = await session.execute(stmt)
-    updated_hotel: Optional[Hotel] = result.scalar_one_or_none()
-
-    if updated_hotel is None:
-        # Ничего не обновляем, если отель не найден
+    updated = result.scalar_one_or_none()
+    if updated is None:
         await session.rollback()
         return None
-
     await session.commit()
-    # refresh обычно не нужен при .returning(Hotel), но вызов безопасен
-    await session.refresh(updated_hotel)
-
-    return updated_hotel
+    await session.refresh(updated)
+    return updated
 
 
 async def delete_hotel(session: AsyncSession, hotel_id: int) -> bool:
-    """
-    Удалить отель по его ID.
-
-    :param session: Асинхронная сессия работы с базой данных.
-    :param hotel_id: ID отеля, который нужно удалить.
-    :return: True, если отель был удалён, иначе False (если запись не найдена).
-    """
-
+    """Удалить отель по ID."""
     stmt = delete(Hotel).where(Hotel.id == hotel_id)
     result = await session.execute(stmt)
-
-    # result.rowcount указывает количество затронутых строк (может быть None в некоторых драйверах)
-    deleted: int = result.rowcount or 0
-
+    deleted = result.rowcount or 0
     if deleted == 0:
         await session.rollback()
         return False
-
     await session.commit()
     return True
 
@@ -117,21 +76,13 @@ async def get_all_hotels(
     pagination: Pagination,
     filters: HotelFilter | None = None,
 ) -> List[Hotel]:
-    """
-    Получить список отелей с учетом фильтрации и пагинации.
-    """
-
+    """Список отелей с пагинацией и фильтром по location."""
     stmt = select(Hotel)
-
     if filters and filters.location:
         stmt = stmt.where(Hotel.location.ilike(f"%{filters.location}%"))
-
     stmt = stmt.limit(pagination.limit).offset(pagination.offset)
-
     result = await session.execute(stmt)
-    hotels: List[Hotel] = result.scalars().all()
-
-    return hotels
+    return list(result.scalars().all())
 
 
 async def get_rooms_by_hotel_id(
@@ -139,13 +90,12 @@ async def get_rooms_by_hotel_id(
     hotel_id: int,
     pagination: Pagination,
 ) -> List[Room]:
+    """Комнаты отеля с пагинацией."""
     stmt = (
         select(Room)
         .where(Room.hotel_id == hotel_id)
         .limit(pagination.limit)
         .offset(pagination.offset)
     )
-
     result = await session.execute(stmt)
-    rooms = result.scalars().all()
-    return rooms
+    return list(result.scalars().all())

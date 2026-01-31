@@ -1,26 +1,19 @@
 """
-CRUD-операции для работы с моделью Booking (Бронирование).
+CRUD — слой работы с базой данных для модели Booking (Бронирование).
 
-Здесь определены асинхронные функции для:
-- создания нового бронирования;
-- получения бронирования по его ID;
-- обновления существующего бронирования;
-- удаления бронирования;
-- получения списка всех бронирований.
-
-Все функции используют AsyncSession из SQLAlchemy и предполагают вызов
-внутри асинхронного контекста FastAPI.
+Только операции с БД: вставка, выборка, обновление, удаление.
+Без бизнес-логики (проверка доступности комнаты, расчёт стоимости и т.д.) —
+вся логика в сервисном слое (app.services.BookingServices).
 """
 
 from datetime import date
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.Booking.models import Booking, BookingStatus
-from app.Booking.schemas import BookingCreate, BookingUpdate
 from app.BookingRooms.models import BookingRooms
 
 
@@ -31,17 +24,12 @@ async def is_room_available(
     date_to: date,
 ) -> bool:
     """
-    Проверить, свободна ли комната на указанный диапазон дат.
+    Проверить по БД, есть ли пересекающиеся бронирования комнаты на даты.
 
-    Интервалы трактуются как [date_from, date_to), т.е. дата выезда не включается.
-    Это позволяет, например, уехать 15-го числа и заселиться другим гостям
-    с 15-го же, без конфликта по датам.
-
-    Логика пересечения:
-    - два интервала [a_from, a_to) и [b_from, b_to) пересекаются, если
-      a_from < b_to и a_to > b_from.
+    Интервалы [date_from, date_to): пересечение если
+    date_from < other.date_to и date_to > other.date_from.
+    Возвращает True, если комната свободна.
     """
-
     stmt = (
         select(Booking)
         .join(BookingRooms, BookingRooms.booking_id == Booking.id)
@@ -51,65 +39,46 @@ async def is_room_available(
             Booking.date_to > date_from,
         )
     )
-
     result = await session.execute(stmt)
-    # Если нашли хотя бы одно бронирование, значит комната занята на эти даты
     existing_booking = result.scalar_one_or_none()
     return existing_booking is None
 
 
 async def create_booking(
     session: AsyncSession,
-    booking_in: BookingCreate,
+    date_from: date,
+    date_to: date,
+    price_per_day: int,
+    totals_day: int,
+    total_cost: int,
     user_id: int,
+    room_id: int,
 ) -> Booking:
     """
-    Создать новое бронирование.
+    Вставить новое бронирование и связь с комнатой в БД.
 
-    Важно:
-    - поля totals_day и total_cost обычно вычисляются валидатором Pydantic-схемы BookingCreate;
-      здесь мы доверяем этим значениям или при необходимости можем пересчитать.
-    - связь с комнатой (room_id) сохраняется через таблицу BookingRooms.
-    - user_id передаётся отдельным параметром (берётся из JWT токена).
-
-    :param session: Асинхронная сессия работы с базой данных.
-    :param booking_in: Данные для создания бронирования (BookingCreate).
-    :param user_id: ID пользователя, который создаёт бронирование (из JWT токена).
-    :return: Созданный ORM-объект Booking.
+    Все значения (включая totals_day, total_cost) передаются готовыми.
     """
-
-    # Перестраховка: если по какой-то причине валидатор не сработал —
-    # можно пересчитать значения дней и стоимости.
-    if booking_in.totals_day is None or booking_in.total_cost is None:
-        totals_day = (booking_in.date_to - booking_in.date_from).days
-        total_cost = totals_day * float(booking_in.price_per_day)
-    else:
-        totals_day = booking_in.totals_day
-        total_cost = int(booking_in.total_cost)
-
     new_booking = Booking(
-        date_from=booking_in.date_from,
-        date_to=booking_in.date_to,
-        price_per_day=int(booking_in.price_per_day),
+        date_from=date_from,
+        date_to=date_to,
+        price_per_day=price_per_day,
         totals_day=totals_day,
         total_cost=total_cost,
         user_id=user_id,
-        status=BookingStatus.PENDING
+        status=BookingStatus.PENDING,
     )
-
     session.add(new_booking)
-    await session.flush()  # чтобы получить id без полного commit
+    await session.flush()
 
-    # Сохраняем связь "бронирование-комната" через BookingRooms
     booking_room = BookingRooms(
         booking_id=new_booking.id,
-        room_id=booking_in.room_id,
+        room_id=room_id,
     )
     session.add(booking_room)
 
     await session.commit()
     await session.refresh(new_booking, attribute_names=["booking_rooms", "rooms"])
-
     return new_booking
 
 
@@ -117,14 +86,7 @@ async def get_booking_by_id(
     session: AsyncSession,
     booking_id: int,
 ) -> Optional[Booking]:
-    """
-    Получить бронирование по его уникальному идентификатору.
-
-    :param session: Асинхронная сессия работы с базой данных.
-    :param booking_id: ID бронирования, которое нужно найти.
-    :return: ORM-объект Booking, если найден, иначе None.
-    """
-
+    """Получить бронирование по ID с загрузкой связей rooms и booking_rooms."""
     stmt = (
         select(Booking)
         .where(Booking.id == booking_id)
@@ -134,89 +96,55 @@ async def get_booking_by_id(
         )
     )
     result = await session.execute(stmt)
-    booking: Optional[Booking] = result.scalar_one_or_none()
-
-    return booking
+    return result.scalar_one_or_none()
 
 
 async def update_booking(
     session: AsyncSession,
     booking_id: int,
-    booking_in: BookingUpdate,
+    update_data: Dict[str, Any],
+    room_id: Optional[int] = None,
 ) -> Optional[Booking]:
     """
-    Обновить данные существующего бронирования по ID.
+    Обновить запись бронирования по ID.
 
-    Важно:
-    - если бронирование не найдено — возвращается None;
-    - поля totals_day и total_cost пересчитываются автоматически, если изменяются
-      date_from, date_to или price_per_day;
-    - связь с комнатой (room_id) обновляется через таблицу BookingRooms только
-      если room_id присутствует в update_data.
-
-    :param session: Асинхронная сессия работы с базой данных.
-    :param booking_id: ID бронирования, которое нужно обновить.
-    :param booking_in: Pydantic-схема с данными для обновления бронирования.
-    :return: Обновлённый ORM-объект Booking или None, если запись не найдена.
+    update_data — словарь полей модели Booking (без room_id).
+    room_id — если передан, связь в booking_rooms перезаписывается на эту комнату.
     """
+    if not update_data and room_id is None:
+        return await get_booking_by_id(session=session, booking_id=booking_id)
 
-    update_data = booking_in.model_dump(exclude_unset=True)
-
-    if not update_data:
-        # Если ничего не передано, просто вернём текущее бронирование (если оно есть)
-        return await get_booking_by_id(session, booking_id)
-
-    # Извлекаем room_id из update_data, если он есть (для обновления связи)
-    room_id = update_data.pop("room_id", None)
-
-    # Пересчитываем totals_day и total_cost, если изменяются даты или цена
-    if any(key in update_data for key in ["date_from", "date_to", "price_per_day"]):
-        # Получаем текущее бронирование для получения недостающих значений
-        current_booking = await get_booking_by_id(session, booking_id)
-        if current_booking is None:
-            return None
-
-        date_from = update_data.get("date_from", current_booking.date_from)
-        date_to = update_data.get("date_to", current_booking.date_to)
-        price_per_day = update_data.get("price_per_day", current_booking.price_per_day)
-
-        if date_to <= date_from:
-            return None
-
-        update_data["totals_day"] = (date_to - date_from).days
-        if isinstance(price_per_day, float):
-            update_data["total_cost"] = update_data["totals_day"] * int(price_per_day)
-        else:
-            update_data["total_cost"] = update_data["totals_day"] * price_per_day
-
-    stmt = (
-        update(Booking)
-        .where(Booking.id == booking_id)
-        .values(**update_data)
-        .returning(Booking)
-    )
-
-    result = await session.execute(stmt)
-    updated_booking: Optional[Booking] = result.scalar_one_or_none()
-
-    if updated_booking is None:
-        await session.rollback()
-        return None
-
-    # Обновляем связь с комнатой в BookingRooms только если room_id был передан
-    if room_id is not None:
-        delete_stmt = delete(BookingRooms).where(BookingRooms.booking_id == booking_id)
-        await session.execute(delete_stmt)
-
-        new_link = BookingRooms(
-            booking_id=booking_id,
-            room_id=room_id,
+    if update_data:
+        stmt = (
+            update(Booking)
+            .where(Booking.id == booking_id)
+            .values(**update_data)
+            .returning(Booking)
         )
-        session.add(new_link)
+        result = await session.execute(stmt)
+        updated_booking: Optional[Booking] = result.scalar_one_or_none()
+        if updated_booking is None:
+            await session.rollback()
+            return None
+    else:
+        updated_booking = await get_booking_by_id(
+            session=session, booking_id=booking_id
+        )
+        if updated_booking is None:
+            return None
+
+    if room_id is not None:
+        await session.execute(
+            delete(BookingRooms).where(BookingRooms.booking_id == booking_id)
+        )
+        session.add(
+            BookingRooms(booking_id=booking_id, room_id=room_id)
+        )
 
     await session.commit()
-    await session.refresh(updated_booking, attribute_names=["booking_rooms", "rooms"])
-
+    await session.refresh(
+        updated_booking, attribute_names=["booking_rooms", "rooms"]
+    )
     return updated_booking
 
 
@@ -224,45 +152,25 @@ async def delete_booking(
     session: AsyncSession,
     booking_id: int,
 ) -> bool:
-    """
-    Удалить бронирование по его ID.
-
-    :param session: Асинхронная сессия работы с базой данных.
-    :param booking_id: ID бронирования, которое нужно удалить.
-    :return: True, если запись была удалена, иначе False.
-    """
-
-    # Сначала удалим связи в BookingRooms (если каскад не настроен),
-    # затем саму запись Booking.
+    """Удалить связи booking_rooms и запись бронирования по ID."""
     await session.execute(
         delete(BookingRooms).where(BookingRooms.booking_id == booking_id)
     )
-
     stmt = delete(Booking).where(Booking.id == booking_id)
     result = await session.execute(stmt)
-
     deleted_count: int = result.rowcount or 0
     if deleted_count == 0:
         await session.rollback()
         return False
-
     await session.commit()
     return True
 
 
 async def get_all_bookings(session: AsyncSession) -> List[Booking]:
-    """
-    Получить список всех бронирований.
-
-    :param session: Асинхронная сессия работы с базой данных.
-    :return: Список ORM-объектов Booking.
-    """
-
+    """Получить все бронирования с загрузкой связей."""
     stmt = select(Booking).options(
         selectinload(Booking.booking_rooms),
         selectinload(Booking.rooms),
     )
     result = await session.execute(stmt)
-    bookings: List[Booking] = list(result.scalars().all())
-
-    return bookings
+    return list(result.scalars().all())

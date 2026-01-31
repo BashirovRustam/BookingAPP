@@ -3,7 +3,11 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.User import crud as user_crud
+from app.services.UserServices import (
+    authenticate_user as service_authenticate_user,
+    create_user as service_create_user,
+    get_user_by_id as service_get_user_by_id,
+)
 from app.User.User_auth.auth import (
     create_access_token,
     create_refresh_token,
@@ -35,7 +39,7 @@ async def register_user(
     payload: UserCreate,
     session: AsyncSession = Depends(get_session),
 ) -> UserRead:
-    user = await user_crud.create_user(session=session, user_in=payload)
+    user = await service_create_user(session=session, user_in=payload)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -55,7 +59,7 @@ async def login(
     response: Response,
     session: AsyncSession = Depends(get_session),
 ) -> TokenResponse:
-    user = await user_crud.authenticate_user(
+    user = await service_authenticate_user(
         session=session,
         email=payload.email,
         password=payload.password,
@@ -130,7 +134,7 @@ async def refresh(
 
     await revoke_refresh_token(session=session, jti=refresh_session.jti)
 
-    user = await user_crud.get_user_by_id(
+    user = await service_get_user_by_id(
         session=session,
         user_id=refresh_session.user_id,
     )

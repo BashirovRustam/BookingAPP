@@ -36,10 +36,19 @@ async def test_create_booking_success(
         price_per_day=price_per_day,
         room_id=created_room_fix.id,
     )
+    totals_day = (date_to - date_from).days
+    total_cost = totals_day * int(price_per_day)
 
-    # Выполнение операции
+    # Выполнение операции (CRUD — только БД, параметры передаём явно)
     booking = await booking_crud.create_booking(
-        db_session, booking_in, user_id=user_factory.id
+        db_session,
+        date_from=date_from,
+        date_to=date_to,
+        price_per_day=int(price_per_day),
+        totals_day=totals_day,
+        total_cost=total_cost,
+        user_id=user_factory.id,
+        room_id=created_room_fix.id,
     )
 
     # Проверка результата
@@ -78,13 +87,20 @@ async def test_create_booking_with_precalculated_values(
         price_per_day=price_per_day,
         room_id=created_room_fix.id,
     )
-
     # Значения уже вычислены валидатором Pydantic
     assert booking_in.totals_day == 3
     assert booking_in.total_cost == 6000
 
+    # CRUD принимает готовые значения (логика расчёта — в сервисе)
     booking = await booking_crud.create_booking(
-        db_session, booking_in, user_id=user_factory.id
+        db_session,
+        date_from=date_from,
+        date_to=date_to,
+        price_per_day=price_per_day,
+        totals_day=booking_in.totals_day,
+        total_cost=int(booking_in.total_cost),
+        user_id=user_factory.id,
+        room_id=created_room_fix.id,
     )
 
     assert booking.totals_day == 3
@@ -145,10 +161,9 @@ async def test_update_booking_empty_data(db_session, booking_factory: Booking):
     """
     original_total_cost = booking_factory.total_cost
 
-    # Пустое обновление
-    update_data = BookingUpdate()
+    # Пустое обновление (CRUD принимает dict и опционально room_id)
     result = await booking_crud.update_booking(
-        db_session, booking_factory.id, update_data
+        db_session, booking_factory.id, {}, room_id=None
     )
 
     assert result is not None

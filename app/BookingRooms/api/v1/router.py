@@ -8,7 +8,13 @@ from typing import List, Tuple
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.BookingRooms import crud as booking_rooms_crud
+from app.services.BookingRoomsServices import (
+    create_booking_room_from_schema,
+    delete_booking_room as service_delete_booking_room,
+    get_booking_room as service_get_booking_room,
+    list_booking_rooms as service_list_booking_rooms,
+    update_booking_room as service_update_booking_room,
+)
 from app.BookingRooms.schemas import (
     BookingRoomsCreate,
     BookingRoomsResponse,
@@ -63,7 +69,7 @@ async def list_booking_rooms(
     Вернуть все записи таблицы booking_rooms.
     """
 
-    links = await booking_rooms_crud.list_booking_rooms(session=session)
+    links = await service_list_booking_rooms(session=session)
     return links
 
 
@@ -82,7 +88,7 @@ async def get_booking_room(
     """
 
     booking_id, room_id = _parse_compound_id(compound_id)
-    link = await booking_rooms_crud.get_booking_room(
+    link = await service_get_booking_room(
         session=session,
         booking_id=booking_id,
         room_id=room_id,
@@ -111,10 +117,9 @@ async def create_booking_room(
     Создать новую запись в booking_rooms.
     """
 
-    link = await booking_rooms_crud.create_booking_room(
+    link = await create_booking_room_from_schema(
         session=session,
-        booking_id=payload.booking_id,
-        room_id=payload.room_id,
+        payload=payload,
     )
     return link
 
@@ -136,12 +141,11 @@ async def update_booking_room(
 
     booking_id, room_id = _parse_compound_id(compound_id)
 
-    link = await booking_rooms_crud.update_booking_room(
+    link = await service_update_booking_room(
         session=session,
         booking_id=booking_id,
         room_id=room_id,
-        new_booking_id=payload.booking_id,
-        new_room_id=payload.room_id,
+        payload=payload,
     )
 
     if link is None:
@@ -169,7 +173,7 @@ async def delete_booking_room(
 
     booking_id, room_id = _parse_compound_id(compound_id)
 
-    deleted = await booking_rooms_crud.delete_booking_room(
+    deleted = await service_delete_booking_room(
         session=session,
         booking_id=booking_id,
         room_id=room_id,

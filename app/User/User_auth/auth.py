@@ -9,8 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.User.User_auth.auth_schemas import TokenData
-from app.User.crud import get_user_by_id
 from app.User.models import User, RolesEnum, RefreshTokenSession
+from app.services.UserServices import get_user_by_id
 from app.db.base import get_session
 from app.config import settings
 

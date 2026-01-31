@@ -2,10 +2,15 @@ import pytest
 
 from app.Dependencies.filters import HotelFilter
 from app.Dependencies.pagination import Pagination
-from app.Hotel import crud
 from app.Hotel.models import Hotel
 from app.Hotel.schemas import HotelCreate, HotelUpdate
-from app.Hotel.crud import create_hotel, delete_hotel, get_hotel_by_id
+from app.services.HotelServices import (
+    create_hotel,
+    delete_hotel,
+    get_all_hotels,
+    get_hotel_by_id,
+    update_hotel,
+)
 
 
 # ============================================================================
@@ -25,7 +30,7 @@ async def test_get_all_hotels_without_filters(db_session, multiple_hotels):
     pagination = Pagination(limit=10, offset=0)
 
     # Act (Действие)
-    result = await crud.get_all_hotels(db_session, pagination, filters=None)
+    result = await get_all_hotels(db_session, pagination, filters=None)
 
     # Assert (Проверка)
     assert len(result) == 5  # Создали 5 отелей в фикстуре
@@ -59,7 +64,7 @@ async def test_get_hotels_filter_exact_location(db_session, multiple_hotels):
     filters = HotelFilter(location="Almaty")
 
     # Act
-    result = await crud.get_all_hotels(db_session, pagination, filters)
+    result = await get_all_hotels(db_session, pagination, filters)
 
     # Assert
     # Найдутся ОБА отеля: "Beach Resort" (Almaty) и "Mountain Lodge" (Almaty Mountains)
@@ -82,7 +87,7 @@ async def test_get_hotels_filter_unique_location(db_session, multiple_hotels):
     filters = HotelFilter(location="Saint Petersburg")
 
     # Act
-    result = await crud.get_all_hotels(db_session, pagination, filters)
+    result = await get_all_hotels(db_session, pagination, filters)
 
     # Assert
     assert len(result) == 1
@@ -106,7 +111,7 @@ async def test_get_hotels_filter_partial_location(db_session, multiple_hotels):
     filters = HotelFilter(location="Moscow")
 
     # Act
-    result = await crud.get_all_hotels(db_session, pagination, filters)
+    result = await get_all_hotels(db_session, pagination, filters)
 
     # Assert
     # Должны найтись: "Grand Hotel" (Moscow) и "City Inn" (Moscow Center)
@@ -132,7 +137,7 @@ async def test_get_hotels_filter_no_matches(db_session, multiple_hotels):
     filters = HotelFilter(location="Tokyo")
 
     # Act
-    result = await crud.get_all_hotels(db_session, pagination, filters)
+    result = await get_all_hotels(db_session, pagination, filters)
 
     # Assert
     assert len(result) == 0
@@ -156,7 +161,7 @@ async def test_get_hotels_pagination_first_page(db_session, multiple_hotels):
     pagination = Pagination(limit=2, offset=0)
 
     # Act
-    result = await crud.get_all_hotels(db_session, pagination, filters=None)
+    result = await get_all_hotels(db_session, pagination, filters=None)
 
     # Assert
     assert len(result) == 2
@@ -177,7 +182,7 @@ async def test_get_hotels_pagination_second_page(db_session, multiple_hotels):
     pagination = Pagination(limit=2, offset=2)
 
     # Act
-    result = await crud.get_all_hotels(db_session, pagination, filters=None)
+    result = await get_all_hotels(db_session, pagination, filters=None)
 
     # Assert
     assert len(result) == 2
@@ -196,7 +201,7 @@ async def test_get_hotels_pagination_beyond_data(db_session, multiple_hotels):
     pagination = Pagination(limit=10, offset=100)
 
     # Act
-    result = await crud.get_all_hotels(db_session, pagination, filters=None)
+    result = await get_all_hotels(db_session, pagination, filters=None)
 
     # Assert
     assert len(result) == 0
@@ -223,7 +228,7 @@ async def test_get_hotels_filter_and_pagination(db_session, multiple_hotels):
     pagination = Pagination(limit=1, offset=0)
 
     # Act
-    result = await crud.get_all_hotels(db_session, pagination, filters)
+    result = await get_all_hotels(db_session, pagination, filters)
 
     # Assert
     # Есть 2 отеля с "Moscow", но берём только первый (limit=1)
@@ -244,7 +249,7 @@ async def test_get_hotels_empty_database(db_session):
     pagination = Pagination(limit=10, offset=0)
 
     # Act
-    result = await crud.get_all_hotels(db_session, pagination, filters=None)
+    result = await get_all_hotels(db_session, pagination, filters=None)
 
     # Assert
     assert len(result) == 0
@@ -276,7 +281,7 @@ async def test_create_hotel_success(db_session):
 @pytest.mark.anyio
 async def test_get_hotel_by_id(db_session, created_hotel):
     hotel_id = created_hotel.id
-    hotel = await crud.get_hotel_by_id(db_session, hotel_id)  # вызываем CRUD функцию
+    hotel = await get_hotel_by_id(db_session, hotel_id)  # вызываем CRUD функцию
 
     assert hotel is not None
     assert hotel.id == hotel_id
@@ -297,7 +302,7 @@ async def test_update_hotel(db_session, created_hotel):
     )
 
     # Вызываем CRUD-функцию обновления
-    updated_hotel = await crud.update_hotel(
+    updated_hotel = await update_hotel(
         session=db_session, hotel_id=hotel_id, hotel_in=update_data
     )
 
@@ -311,7 +316,7 @@ async def test_update_hotel(db_session, created_hotel):
     assert updated_hotel.image_id == 123
 
     # Дополнительно можно проверить, что изменения реально сохранились в БД
-    hotel_from_db = await crud.get_hotel_by_id(db_session, hotel_id)
+    hotel_from_db = await get_hotel_by_id(db_session, hotel_id)
     assert hotel_from_db.name == "Updated Hotel"
     assert hotel_from_db.location == "Updated City"
     assert hotel_from_db.services == {"wifi": True, "parking": True}
@@ -326,7 +331,7 @@ async def test_update_hotel_not_found(db_session):
 
     update_data = HotelUpdate(name="Will Not Update", location="Nowhere City")
 
-    updated_hotel = await crud.update_hotel(
+    updated_hotel = await update_hotel(
         session=db_session, hotel_id=non_existing_id, hotel_in=update_data
     )
 

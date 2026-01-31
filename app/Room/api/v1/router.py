@@ -8,8 +8,14 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Dependencies.filters import RoomFilter
-from app.Room import crud as room_crud
 from app.Room.schemas import RoomCreate, RoomRead, RoomUpdate
+from app.services.RoomServices import (
+    create_room as service_create_room,
+    delete_room as service_delete_room,
+    get_all_rooms as service_get_all_rooms,
+    get_room_by_id as service_get_room_by_id,
+    update_room as service_update_room,
+)
 from app.User.User_auth.auth import admin_required
 from app.db.base import get_session
 from app.Dependencies.pagination import Pagination, get_pagination
@@ -34,7 +40,7 @@ async def list_rooms(
     Вернуть все комнаты.
     """
 
-    return await room_crud.get_all_rooms(
+    return await service_get_all_rooms(
         session=session, pagination=pagination, filters=filters
     )
 
@@ -52,7 +58,7 @@ async def get_room(
     Вернуть одну комнату.
     """
 
-    room = await room_crud.get_room_by_id(session=session, room_id=room_id)
+    room = await service_get_room_by_id(session=session, room_id=room_id)
     if room is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -77,7 +83,7 @@ async def create_room(
     """
     Создать новую комнату (только для админов).
     """
-    room = await room_crud.create_room(session=session, room_in=payload)
+    room = await service_create_room(session=session, room_in=payload)
     return room
 
 
@@ -97,7 +103,7 @@ async def update_room(
     """
     Обновить существующую комнату (только для админов).
     """
-    room = await room_crud.update_room(
+    room = await service_update_room(
         session=session, room_id=room_id, room_in=payload
     )
     if room is None:
@@ -123,7 +129,7 @@ async def delete_room(
     """
     Удалить комнату по ID (только для админов).
     """
-    deleted = await room_crud.delete_room(session=session, room_id=room_id)
+    deleted = await service_delete_room(session=session, room_id=room_id)
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

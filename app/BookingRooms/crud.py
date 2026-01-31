@@ -1,11 +1,7 @@
 """
-Функции ниже:
-- создают новую запись связи;
-- получают запись по первичному составному ключу;
-- обновляют существующую связь;
-- удаляют связь;
-- возвращают список всех связей.
+CRUD — слой работы с БД для BookingRooms (связь бронирование–комната).
 
+Только операции с БД, без бизнес-логики. Логика — в app.services.BookingRoomsServices.
 """
 
 from typing import List, Optional, Tuple
@@ -64,28 +60,14 @@ async def update_booking_room(
     session: AsyncSession,
     booking_id: int,
     room_id: int,
-    new_booking_id: Optional[int] = None,
-    new_room_id: Optional[int] = None,
+    update_data: dict,
 ) -> Optional[BookingRooms]:
     """
-    Обновить существующую запись связи.
+    Обновить существующую запись связи по составному ключу.
 
-    :param session: Асинхронная сессия работы с БД.
-    :param booking_id: Текущий ID бронирования (часть ключа).
-    :param room_id: Текущий ID комнаты (часть ключа).
-    :param new_booking_id: Новое значение booking_id (если нужно).
-    :param new_room_id: Новое значение room_id (если нужно).
-    :return: Обновлённый объект BookingRooms или None, если запись не найдена.
+    update_data — словарь полей (booking_id, room_id). Только работа с БД.
     """
-
-    values: dict[str, int] = {}
-    if new_booking_id is not None:
-        values["booking_id"] = new_booking_id
-    if new_room_id is not None:
-        values["room_id"] = new_room_id
-
-    if not values:
-        # Нечего обновлять — просто возвращаем текущую запись
+    if not update_data:
         return await get_booking_room(session, booking_id, room_id)
 
     stmt = (
@@ -94,7 +76,7 @@ async def update_booking_room(
             BookingRooms.booking_id == booking_id,
             BookingRooms.room_id == room_id,
         )
-        .values(**values)
+        .values(**update_data)
         .returning(BookingRooms)
     )
 

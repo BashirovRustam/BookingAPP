@@ -5,17 +5,16 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.Hotel.crud import create_hotel
-from app.Hotel.models import Base  # Импортируй свой Base для Hotel/Room/User
+from app.Hotel.models import Base
 from app.Hotel.schemas import HotelCreate, HotelUpdate
+from app.services.HotelServices import create_hotel as service_create_hotel
 
 from app.Room.schemas import RoomCreate, RoomUpdate
-from app.Room import crud as room_crud
-
+from app.services.RoomServices import create_room as service_create_room
 
 from app.User.models import User
 from app.User import schemas
-from app.User import crud
+from app.services.UserServices import create_user as service_create_user
 
 from app.BookingRooms.models import BookingRooms
 from app.Booking.models import Booking
@@ -70,7 +69,7 @@ async def created_hotel(db_session):
         room_quality="комфорт",
         image_id=10,
     )
-    hotel = await create_hotel(db_session, hotel_in)
+    hotel = await service_create_hotel(db_session, hotel_in)
     return hotel
 
 
@@ -115,7 +114,7 @@ async def multiple_hotels(db_session):
             room_quality=hotel_data["room_quality"],
             image_id=i * 10,
         )
-        hotel = await create_hotel(db_session, hotel_in)
+        hotel = await service_create_hotel(db_session, hotel_in)
         hotels.append(hotel)
 
     return hotels
@@ -130,7 +129,7 @@ async def created_room_fix(db_session):
         hotel_id=1,
         services={"wifi": True},
     )
-    room = await room_crud.create_room(db_session, room_in)
+    room = await service_create_room(db_session, room_in)
     return room
 
 
@@ -185,8 +184,8 @@ async def user_factory(db_session: AsyncSession):
         last_name="User",
     )
 
-    # Вызываем CRUD для создания пользователя
-    user = await crud.create_user(db_session, user_in)
+    # Вызываем сервис для создания пользователя
+    user = await service_create_user(db_session, user_in)
 
     # Убеждаемся, что пользователь создан
     assert user is not None
@@ -210,7 +209,7 @@ async def booking_factory(
     from datetime import date, timedelta
     from decimal import Decimal
     from app.Booking.schemas import BookingCreate
-    from app.Booking import crud as booking_crud
+    from app.services.BookingServices import create_booking as service_create_booking
 
     today = date.today()
 
@@ -221,7 +220,7 @@ async def booking_factory(
         room_id=created_room_fix.id,
     )
 
-    booking = await booking_crud.create_booking(
+    booking = await service_create_booking(
         db_session, booking_in, user_id=user_factory.id
     )
 
