@@ -3,7 +3,7 @@
 import asyncio
 import random
 from datetime import date, timedelta
-from typing import List
+from typing import List, Dict
 
 from sqlalchemy import func, select
 
@@ -14,6 +14,105 @@ from app.Room.models import Room
 from app.User.models import User, RolesEnum
 from app.User.User_auth.security import hash_password
 from app.db.base import AsyncSessionFactory, init_models
+
+# Базовые данные для генерации отелей
+KAZAKHSTAN_CITIES = [
+    "Астана", "Алматы", "Шымкент", "Караганда", "Актау", "Атырау", 
+    "Актобе", "Павлодар", "Усть-Каменогорск", "Семей", "Костанай",
+    "Петропавловск", "Туркестан", "Тараз", "Кызылорда", "Уральск",
+    "Талдыкорган", "Экибастуз", "Рудный", "Жезказган", "Кокшетау",
+    "Темиртау", "Балхаш", "Сатпаев", "Кентау", "Аральск", "Жанаозен",
+    "Каскелен", "Капшагай", "Риддер", "Лисаковск", "Сарань", "Степногорск",
+    "Шахтинск", "Байконур", "Аксу", "Аксуск", "Жаркент", "Талгар",
+    "Есик", "Шу", "Сарыагаш", "Аралык", "Кульсары", "Жетысай"
+]
+
+HOTEL_NAMES_PARTS = [
+    "Премиум", "Гранд", "Плаза", "Отель", "Резорт", "Палас", "Роял", 
+    "Люксовый", "Комфорт", "Бизнес", "Классик", "Модерн", "Центральный",
+    "Национальный", "Золотой", "Серебряный", "Алмазный", "Изумрудный",
+    "Солнечный", "Горный", "Озерный", "Речной", "Степной", "Небесный"
+]
+
+HOTEL_THEMES = [
+    "Бәйтерек", "Абай", "Яссауи", "Алатау", "Каспий", "Иртыш", "Сырдария",
+    "Жайык", "Балхаш", "Алтай", "Тянь-Шань", "Сарыарка", "Урал", "Тобол",
+    "Есиль", "Нура", "Шу", "Лепсы", "Кокшетау", "Боровое", "Байконур"
+]
+
+SERVICES_POOL = {
+    "SPA": ["хаммам и бассейн", "сауна и джакузи", "массаж и релакс", "термальные ванны", "ароматерапия"],
+    "Трансфер": ["аэропорт", "ж/д вокзал", "автовокзал", "центр города", "курортная зона"],
+    "Ресторан": ["европейская кухня", "казахская кухня", "азиатская кухня", "французская кухня", "итальянская кухня"],
+    "Фитнес": ["современное оборудование", "тренажерный зал", "йога студия", "кардио зона", "силовые тренировки"],
+    "Бассейн": ["крытый", "открытый", "олимпийский", "детский", "с подогревом"],
+    "Конференц-зал": ["на 50 человек", "на 100 человек", "на 200 человек", "VIP зал", "переговорная"],
+    "Парковка": ["бесплатная", "подземная", "охраняемая", "VIP парковка", "гостевая"],
+    "Wi-Fi": ["бесплатный", "гигабитный", "высокоскоростной", "безопасный", "VIP доступ"],
+    "Экскурсии": ["исторические", "природные", "городские", "культурные", "гастрономические"],
+    "Развлечения": ["караоке", "бильярд", "боулинг", "кинотеатр", "игровая зона"],
+    "Бизнес": ["бизнес-центр", "офисные услуги", "переводчик", "секретарь", "VIP зал"],
+    "Спорт": ["теннисные корты", "футбольное поле", "баскетбольная площадка", "волейбольная площадка", "беговая дорожка"],
+    "Красота": ["парикмахерская", "салон красоты", "маникюр", "педикюр", "косметология"],
+    "Дети": ["детская комната", "игровая площадка", "аниматор", "детский клуб", "няня"],
+    "Питание": ["завтрак", "обед", "ужин", "шведский стол", "room service"],
+    "Комфорт": ["кондиционер", "минибар", "сейф", "халаты", "обувь"],
+    "Технологии": ["умный дом", "смарт ТВ", "Apple TV", "Bluetooth колонка", "игровая консоль"],
+    "Пляж": ["частный", "общественный", "песчаный", "галечный", "дикий"],
+    "Горы": ["экскурсии", "подъемник", "горнолыжка", "пешие походы", "альпинизм"],
+    "Вода": ["рыбалка", "катание на лодках", "яхтинг", "дайвинг", "серфинг"],
+    "Культура": ["музей", "галерея", "театр", "концертный зал", "библиотека"],
+    "Шоппинг": ["торговый центр", "бутики", "сувенирный магазин", "антикварный", "дизайнерский"]
+}
+
+ROOM_QUALITIES = ["стандарт", "комфорт", "делюкс", "люкс", "премиум", "бизнес", "курорт", "семейный"]
+
+ROOM_DESCRIPTIONS = [
+    "Уютный номер с панорамными окнами и современным дизайном",
+    "Просторный номер с рабочей зоной и высокоскоростным интернетом",
+    "Элегантный номер с дизайнерской мебелью и атмосферным освещением",
+    "Комфортный номер с удобной кроватью и качественным бельем",
+    "Стильный номер с минималистичным интерьером и современной техникой",
+    "Роскошный номер с панорамным видом и премиум отделкой",
+    "Функциональный номер с кухонной зоной и обеденным столом",
+    "Семейный номер с дополнительными спальными местами и игровой зоной",
+    "Романтический номер с джакузи и балконом с цветами",
+    "Бизнес номер с конференц-столом и офисным оборудованием",
+    "Экологичный номер с натуральными материалами и зелеными растениями",
+    "Технологичный номер с умным домом и голосовым управлением",
+    "Традиционный номер с национальными элементами декора",
+    "Современный номер с открытой планировкой и террасой",
+    "Классический номер с деревянной мебелью и антикварными деталями",
+    "Минималистичный номер с функциональной мебелью и скрытым хранением",
+    "Арт-номер с картинами и скульптурами местных художников",
+    "Лофт номер с высокими потолками и индустриальным дизайном",
+    "Скандинавский номер с светлыми тонами и уютной атмосферой",
+    "Японский номер с минимализмом и традиционными элементами"
+]
+
+ROOM_SERVICES_POOL = {
+    "Wi-Fi": ["бесплатный", "гигабитный", "высокоскоростной", "безопасный", "VIP доступ"],
+    "Кондиционер": ["инверторный", "умный", "тихий", "мощный", "энергоэффективный"],
+    "ТВ": ["смарт ТВ", "4K телевизор", "кабельное ТВ", "спутниковое ТВ", "3D телевизор"],
+    "Минибар": ["бесплатный", "пополняемый", "VIP наполнение", "местные напитки", "импортные напитки"],
+    "Сейф": ["электронный", "отдельный", "большой", "ноутбук сейф", "биометрический"],
+    "Балкон": ["с видом на город", "с видом на горы", "с мебелью", "терраса", "летняя веранда"],
+    "Ванная": ["джакузи", "душ кабина", "гидромассаж", "фен", "банные халаты"],
+    "Кухня": ["кухонная зона", "кухня-студия", "кофемашина", "плита", "холодильник"],
+    "Рабочая зона": ["письменный стол", "офисное кресло", "лампа", "розетки", "USB порты"],
+    "Развлечения": ["игровая консоль", "Apple TV", "Bluetooth колонка", "VR очки", "проектор"],
+    "Комфорт": ["ортопедический матрас", "пуховые одеяла", "гипоаллергенные подушки", "пижамы", "тапочки"],
+    "Технологии": ["умный дом", "голосовое управление", "автоматизация", "сценарии освещения", "климат-контроль"],
+    "Питание": ["room service", "кофемашина", "чайник", "холодильник", "микроволновка"],
+    "Спорт": ["тренажер", "велотренажер", "йога коврик", "гантели", "экспандер"],
+    "Красота": ["зеркало с подсветкой", "фен", "утюжок", "набор косметики", "зеркало для макияжа"],
+    "Дети": ["детская кроватка", "стульчик для кормления", "игрушки", "детские книги", "мультики"],
+    "Экология": ["очиститель воздуха", "фильтрованная вода", "органическая косметика", "натуральные материалы", "энергосбережение"],
+    "Безопасность": ["противопожарная система", "датчик дыма", "тревожная кнопка", "видеонаблюдение", "электронный замок"],
+    "Люксовое": ["халаты", "тапочки", "дополнительные услуги", "VIP обслуживание", "персональный ассистент"],
+    "Бизнес": ["принтер", "сканер", "факс", "конференц-звонок", "многозонный розеточный блок"],
+    "Отдых": ["массажное кресло", "гамак", "подвесное кресло", "солярий", "медитационная зона"]
+}
 
 # Данные для отелей (30 отелей)
 KZ_HOTELS = [
@@ -234,6 +333,99 @@ KZ_HOTELS = [
         "image_id": 530,
     },
 ]
+
+def generate_hotels(count: int = 2000) -> List[Dict]:
+    """Генерирует указанное количество отелей с разнообразными услугами."""
+    hotels = []
+    
+    for i in range(count):
+        city = random.choice(KAZAKHSTAN_CITIES)
+        name_part1 = random.choice(HOTEL_NAMES_PARTS)
+        name_part2 = random.choice(HOTEL_THEMES)
+        
+        # Генерируем уникальное имя
+        hotel_name = f"{name_part1} {name_part2}"
+        
+        # Генерируем локацию
+        street_options = ["проспект", "улица", "набережная", "бульвар", "площадь", "мкр", "микрорайон"]
+        street_name = random.choice(["Абая", "Назарбаева", "Достык", "Республики", "Бауыржана", "Сатпаева", "Пушкина", "Ленина", "Мира", "Конституции"])
+        street_type = random.choice(street_options)
+        location = f"{city}, {street_type} {street_name}"
+        
+        # Генерируем услуги (2-5 услуг на отель)
+        num_services = random.randint(2, 5)
+        available_services = list(SERVICES_POOL.keys())
+        selected_services = random.sample(available_services, min(num_services, len(available_services)))
+        
+        services = {}
+        for service in selected_services:
+            service_options = SERVICES_POOL[service]
+            services[service] = random.choice(service_options)
+        
+        # Генерируем качество
+        room_quality = random.choice(ROOM_QUALITIES)
+        
+        # Генерируем image_id
+        image_id = 500 + i % 1000  # Уникальные ID от 500 до 1499
+        
+        hotels.append({
+            "name": hotel_name,
+            "location": location,
+            "services": services,
+            "room_quality": room_quality,
+            "image_id": image_id,
+        })
+    
+    return hotels
+
+def generate_rooms(count: int = 1000, hotel_count: int = 2000) -> List[Dict]:
+    """Генерирует указанное количество комнат с разнообразными описаниями и услугами."""
+    rooms = []
+    
+    room_name_parts = ["Люкс", "Сьют", "Апартаменты", "Студия", "Номер", "Вилла", "Коттедж", "Бунгало", "Пентхаус", "Дуплекс"]
+    room_themes = ["Бәйтерек", "Абай", "Яссауи", "Алатау", "Каспий", "Иртыш", "Сырдария", "Жайык", "Алтай", "Тянь-Шань"]
+    
+    for i in range(count):
+        hotel_idx = random.randint(0, hotel_count - 1)
+        name_part1 = random.choice(room_name_parts)
+        name_part2 = random.choice(room_themes)
+        
+        # Генерируем уникальное имя комнаты
+        room_name = f"{name_part1} «{name_part2}»"
+        
+        # Генерируем описание
+        description = random.choice(ROOM_DESCRIPTIONS)
+        
+        # Генерируем цену (от 15000 до 150000 тг)
+        base_price = random.randint(15000, 150000)
+        
+        # Генерируем услуги (2-4 услуги на комнату)
+        num_services = random.randint(2, 4)
+        available_services = list(ROOM_SERVICES_POOL.keys())
+        selected_services = random.sample(available_services, min(num_services, len(available_services)))
+        
+        services = {}
+        for service in selected_services:
+            service_options = ROOM_SERVICES_POOL[service]
+            services[service] = random.choice(service_options)
+        
+        # Генерируем качество
+        quality = random.choice(ROOM_QUALITIES)
+        
+        # Генерируем image_id
+        image_id = 600 + i % 1000  # Уникальные ID от 600 до 1599
+        
+        rooms.append({
+            "hotel_idx": hotel_idx,
+            "name": room_name,
+            "descriptions": description,
+            "price_per_day": base_price,
+            "services": services,
+            "quality": quality,
+            "image_id": image_id,
+        })
+    
+    return rooms
 
 # Данные для комнат (20 комнат)
 KZ_ROOMS = [
@@ -474,12 +666,12 @@ async def create_hotels(session) -> List[Hotel]:
     # Проверяем количество существующих отелей
     existing_count = await session.scalar(select(func.count(Hotel.id)))
 
-    if existing_count >= 30:
+    if existing_count >= 2000:
         print(f"Отелей уже достаточно: {existing_count}")
         result = await session.scalars(select(Hotel))
         return list(result)
 
-    # Создаем недостающие отели
+    # Создаем базовые отели если их нет
     hotels_to_create = []
     for hotel_data in KZ_HOTELS:
         # Проверяем, существует ли отель с таким именем
@@ -489,6 +681,21 @@ async def create_hotels(session) -> List[Hotel]:
         if not existing:
             hotel = Hotel(**hotel_data)
             hotels_to_create.append(hotel)
+
+    # Генерируем дополнительные отели если нужно
+    target_count = 2000
+    if existing_count + len(hotels_to_create) < target_count:
+        additional_needed = target_count - existing_count - len(hotels_to_create)
+        generated_hotels = generate_hotels(additional_needed)
+        
+        for hotel_data in generated_hotels:
+            # Проверяем, существует ли отель с таким именем
+            existing = await session.scalar(
+                select(Hotel).where(Hotel.name == hotel_data["name"])
+            )
+            if not existing:
+                hotel = Hotel(**hotel_data)
+                hotels_to_create.append(hotel)
 
     if hotels_to_create:
         session.add_all(hotels_to_create)
@@ -507,12 +714,12 @@ async def create_rooms(session, hotels: List[Hotel]) -> List[Room]:
     # Проверяем количество существующих комнат
     existing_count = await session.scalar(select(func.count(Room.id)))
 
-    if existing_count >= 20:
+    if existing_count >= 1000:
         print(f"Комнат уже достаточно: {existing_count}")
         result = await session.scalars(select(Room))
         return list(result)
 
-    # Создаем недостающие комнаты
+    # Создаем базовые комнаты если их нет
     rooms_to_create = []
     for room_data in KZ_ROOMS:
         # Проверяем, существует ли комната с таким именем
@@ -533,6 +740,33 @@ async def create_rooms(session, hotels: List[Hotel]) -> List[Room]:
                     image_id=room_data["image_id"],
                 )
                 rooms_to_create.append(room)
+
+    # Генерируем дополнительные комнаты если нужно
+    target_count = 1000
+    if existing_count + len(rooms_to_create) < target_count:
+        additional_needed = target_count - existing_count - len(rooms_to_create)
+        hotel_count = len(hotels) if hotels else 2000
+        generated_rooms = generate_rooms(additional_needed, hotel_count)
+        
+        for room_data in generated_rooms:
+            # Проверяем, существует ли комната с таким именем
+            existing = await session.scalar(
+                select(Room).where(Room.name == room_data["name"])
+            )
+            if not existing:
+                hotel_idx = room_data["hotel_idx"]
+                if hotel_idx < len(hotels):
+                    hotel = hotels[hotel_idx]
+                    room = Room(
+                        hotel_id=hotel.id,
+                        name=room_data["name"],
+                        descriptions=room_data["descriptions"],
+                        price_per_day=room_data["price_per_day"],
+                        services=room_data["services"],
+                        quality=room_data["quality"],
+                        image_id=room_data["image_id"],
+                    )
+                    rooms_to_create.append(room)
 
     if rooms_to_create:
         session.add_all(rooms_to_create)

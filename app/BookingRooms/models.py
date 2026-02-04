@@ -3,6 +3,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
+# Import related models to ensure they're registered in SQLAlchemy's metadata
+from app.Booking.models import Booking
+
 
 class BookingRooms(Base):
     __tablename__ = "booking_rooms"

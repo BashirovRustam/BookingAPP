@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 
 from app.api.router import api_router
+# Import all models to ensure they're registered in SQLAlchemy metadata
+from app.db.models import *
 
 app = FastAPI()
 
@@ -13,7 +15,6 @@ async def read_root():
     """
     Простой health-check эндпоинт.
     """
-
     return {"message": "Hello, FastAPI!"}
 
 

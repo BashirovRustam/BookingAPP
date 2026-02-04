@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.Dependencies.filters import HotelFilter
+from app.Dependencies.filters import HotelFilter, get_hotel_filter
 from app.Hotel.schemas import HotelCreate, HotelResponse, HotelUpdate
 from app.services.HotelServices import (
     create_hotel as service_create_hotel,
@@ -31,18 +31,16 @@ router = APIRouter(
     summary="Получить список всех отелей",
 )
 async def list_hotels(
-    filters: HotelFilter = Depends(),
     pagination: Pagination = Depends(get_pagination),
     session: AsyncSession = Depends(get_session),
 ) -> list[HotelResponse]:
     """
     Вернуть список всех отелей из базы данных.
     """
-
     hotels = await service_get_all_hotels(
         session=session,
         pagination=pagination,
-        filters=filters,
+        filters=None,
     )
     return hotels
 

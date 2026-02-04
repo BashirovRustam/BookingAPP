@@ -17,6 +17,7 @@ class Hotel(Base):
     image_id: Mapped[Optional[int]] = mapped_column(Integer)
 
     rooms: Mapped[List["Room"]] = relationship(
+        "Room",
         back_populates="hotel",
         cascade="all, delete-orphan",
     )
