@@ -1,6 +1,6 @@
 """Pydantic схемы для валидации параметров поиска"""
 
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Dict, Any
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
@@ -44,12 +44,35 @@ VALID_CITIES = {
     "Усть-Каменогорск",
 }
 
+# ─────────────────────────────────────────────
+# Pydantic схемы для API
+# ─────────────────────────────────────────────
+
+
+class TestRequest(BaseModel):
+    """Тестовый запрос для LLM"""
+
+    question: str = Field(..., example="Привет! Ты работаешь?")
+    temperature: float = Field(default=0.7, ge=0.0, le=1.0)
+
+
+class SearchRequest(BaseModel):
+    """Запрос от клиента для поиска"""
+    query: str = Field(..., example="Найди отель в Алматы с ценами 20-30 тысяч")
+
+
+class SearchResponse(BaseModel):
+    """Ответ API с результатами поиска"""
+
+    success: bool = Field(..., description="Успешность выполнения запроса")
+    original_query: str = Field(..., description="Оригинальный запрос")
+    extracted_params: Optional[Dict[str, Any]] = Field(None, description="Извлеченные параметры")
+    error: Optional[str] = Field(None, description="Сообщение об ошибке")
+
 
 # ─────────────────────────────────────────────
 # Pydantic схема для параметров поиска
 # ─────────────────────────────────────────────
-
-
 class SearchParams(BaseModel):
     """
     Валидированные параметры поиска.
@@ -153,33 +176,3 @@ class SearchParams(BaseModel):
     )
 
 
-# ─────────────────────────────────────────────
-# Схема для ответа с валидацией
-# ─────────────────────────────────────────────
-
-
-class ValidationResult(BaseModel):
-    """Результат валидации параметров"""
-
-    valid: bool = Field(..., description="Прошла ли валидация")
-    params: Optional[SearchParams] = Field(None, description="Валидированные параметры")
-    errors: List[str] = Field(
-        default_factory=list, description="Список ошибок валидации"
-    )
-    warnings: List[str] = Field(default_factory=list, description="Предупреждения")
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "valid": True,
-                "params": {
-                    "query_type": "room",
-                    "city": "Алматы",
-                    "price_min": 20000,
-                    "price_max": 50000,
-                },
-                "errors": [],
-                "warnings": ["Не указан город"],
-            }
-        }
-    )
