@@ -4,13 +4,16 @@ import httpx
 import logging
 from typing import Dict, Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .llm_client import LLMClient, LLMConfig
 from .schemas import TestRequest, SearchRequest, SearchResponse
 from .validation_service import SearchParamsValidator
+from .search_service import SearchService
+from app.db.base import get_session
 
 logger = logging.getLogger(__name__)
 
@@ -77,12 +80,15 @@ async def llm_health():
 
 
 @router.post("/search")
-async def search(request: SearchRequest) -> SearchResponse:
+async def search(
+    request: SearchRequest, 
+    session: AsyncSession = Depends(get_session)
+) -> SearchResponse:
     """
-    Извлекает параметры поиска из текстового запроса и валидирует их.
+    Извлекает параметры поиска из текстового запроса и выполняет поиск.
 
     Принимает: текст запроса
-    Возвращает: JSON с валидированными параметрами
+    Возвращает: JSON с валидированными параметрами и результатами поиска
 
     Пример:
     Input: {"query": "Найди отель в Алматы с ценами 20-30 тысяч"}
@@ -94,17 +100,27 @@ async def search(request: SearchRequest) -> SearchResponse:
             "city": "Алматы",
             "price_min": 20000,
             "price_max": 30000
+        },
+        "search_results": {
+            "type": "hotel",
+            "count": 5,
+            "results": [...]
         }
     }
     """
     try:
         # Используем валидатор для извлечения и валидации параметров
         params = await validator.extract_and_validate_from_query(request.query)
+        
+        # Выполняем поиск с помощью SearchService
+        search_service = SearchService(session)
+        search_results = await search_service.search(params)
 
         return SearchResponse(
             success=True,
             original_query=request.query,
-            extracted_params=params.model_dump()
+            extracted_params=params.model_dump(),
+            search_results=search_results
         )
 
     except (ValidationError, ValueError) as e:

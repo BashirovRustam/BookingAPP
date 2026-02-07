@@ -13,6 +13,15 @@ SEARCH_PARAMS_EXTRACTION_PROMPT = """Ты — система извлечени�
 ТВОЯ ЗАДАЧА: 
 Прочитай запрос пользователя и извлеки параметры в JSON формате.
 
+КРИТИЧЕСКИ ВАЖНО:
+- Возвращай ТОЛЬКО валидный JSON
+- НЕ добавляй текст до или после JSON
+- НЕ добавляй комментарии в JSON
+- НЕ добавляй trailing commas (запятые перед })
+- НЕ используй markdown (```json)
+- ПРОВЕРЬ JSON перед отправкой: все строки в кавычках, числа без кавычек, null без кавычек
+- Массивы в квадратных скобках [], объекты в фигурных {}
+
 СТРУКТУРА JSON (которую ты должен вернуть):
 
 {
@@ -23,6 +32,7 @@ SEARCH_PARAMS_EXTRACTION_PROMPT = """Ты — система извлечени�
   "price_max": число или null,
   "quality": "из списка допустимых или null",
   "required_services": ["wifi", "бассейн"] или [],
+  "description_keywords": ["панорамный", "с видом на"] или [],
   "additional_info": "любая доп информация или null"
 }
 
@@ -60,12 +70,22 @@ SEARCH_PARAMS_EXTRACTION_PROMPT = """Ты — система извлечени�
 
 6. required_services - список услуг и удобств (массив строк):
    - Услуги: ["wifi", "бассейн", "парковка", "завтрак", "кондиционер", "кухня"]
-   - Виды из окна: ["вид на море", "вид на реку", "вид на горы", "вид на город"]
+   - Виды из окна: ["вид на море", "вид на реку", "вид на горы", "вид на город", "вид на байтерек"]
    - Всегда в нижнем регистре
    - Если услуг нет — верни пустой массив []
    - ВАЖНО: "Номер с видом на реку Урал" → services: ["вид на реку"], НЕ location!
-   
-7. additional_info - всё остальное что не влезло:
+   - ВАЖНО: "комната с видом на байтерек" → services: ["вид на байтерек"]
+
+7. description_keywords - ключевые слова для поиска в описаниях номеров:
+   - Описания: ["панорамный", "уютный", "просторный", "современный", "стильный"]
+   - Виды: ["с видом на", "панорамный вид", "окно на", "высокий этаж"]
+   - Особенности: ["с балконом", "с террасой", "с камином", "с джакузи"]
+   - Всегда в нижнем регистре
+   - Если ключевых слов нет — верни пустой массив []
+   - ВАЖНО: "комната с панорамным видом на город" → description_keywords: ["панорамный", "вид на город"]
+   - ВАЖНО: "уютная студия с балконом" → description_keywords: ["уютная", "с балконом"]
+
+8. additional_info - всё остальное что не влезло:
    - Количество гостей, даты, особые пожелания и т.д.
    - Это НЕ используется для фильтрации в БД
    - Просто для контекста
@@ -131,6 +151,31 @@ SEARCH_PARAMS_EXTRACTION_PROMPT = """Ты — система извлечени�
   "additional_info": null
 }
 
+Запрос: "Комната с видом на байтерек"
+{
+  "query_type": "room",
+  "city": null,
+  "location": null,
+  "price_min": null,
+  "price_max": null,
+  "quality": null,
+  "required_services": ["вид на байтерек"],
+  "additional_info": null
+}
+
+Запрос: "подбери комнату с видом на байтерек"
+{
+  "query_type": "room",
+  "city": null,
+  "location": null,
+  "price_min": null,
+  "price_max": null,
+  "quality": null,
+  "required_services": ["вид на байтерек"],
+  "description_keywords": ["с видом на", "байтерек"],
+  "additional_info": null
+}
+
 Запрос: "Комната с видом на море в Актау"
 {
   "query_type": "room",
@@ -140,7 +185,21 @@ SEARCH_PARAMS_EXTRACTION_PROMPT = """Ты — система извлечени�
   "price_max": null,
   "quality": null,
   "required_services": ["вид на море"],
+  "description_keywords": ["с видом на", "море"],
   "additional_info": null
+}
+
+Запрос: "уютная студия с панорамным видом"
+{
+  "query_type": "room",
+  "city": null,
+  "location": null,
+  "price_min": null,
+  "price_max": null,
+  "quality": null,
+  "required_services": [],
+  "description_keywords": ["уютная", "панорамным видом"],
+  "additional_info": "студия"
 }
 
 Запрос: "Люкс номер в центре Астаны с джакузи"
@@ -152,18 +211,6 @@ SEARCH_PARAMS_EXTRACTION_PROMPT = """Ты — система извлечени�
   "price_max": null,
   "quality": "люкс",
   "required_services": ["джакузи"],
-  "additional_info": null
-}
-
-Запрос: "VIP номер с видом на горы"
-{
-  "query_type": "room",
-  "city": null,
-  "location": null,
-  "price_min": null,
-  "price_max": null,
-  "quality": "люкс",
-  "required_services": ["вид на горы"],
   "additional_info": null
 }
 
@@ -191,6 +238,18 @@ SEARCH_PARAMS_EXTRACTION_PROMPT = """Ты — система извлечени�
   "additional_info": "на 4 человека"
 }
 
+Запрос: "подбери отель с романтической обстановкой в Астане"
+{
+  "query_type": "hotel",
+  "city": "Астана",
+  "location": null,
+  "price_min": null,
+  "price_max": null,
+  "quality": null,
+  "required_services": [],
+  "additional_info": "романтическая обстановка"
+}
+
 ВАЖНО:
 - Возвращай ТОЛЬКО JSON, без текста до и после
 - Не добавляй markdown (```json)
@@ -198,6 +257,7 @@ SEARCH_PARAMS_EXTRACTION_PROMPT = """Ты — система извлечени�
 - Для required_services если пусто - ставь [] (пустой массив)
 - Все строки в кавычках
 - Количество гостей, даты и подобное → в additional_info
+- НЕТ trailing commas перед закрывающей скобкой!
 """
 
 

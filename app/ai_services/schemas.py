@@ -44,10 +44,6 @@ VALID_CITIES = {
     "Усть-Каменогорск",
 }
 
-# ─────────────────────────────────────────────
-# Pydantic схемы для API
-# ─────────────────────────────────────────────
-
 
 class TestRequest(BaseModel):
     """Тестовый запрос для LLM"""
@@ -58,6 +54,7 @@ class TestRequest(BaseModel):
 
 class SearchRequest(BaseModel):
     """Запрос от клиента для поиска"""
+
     query: str = Field(..., example="Найди отель в Алматы с ценами 20-30 тысяч")
 
 
@@ -66,13 +63,49 @@ class SearchResponse(BaseModel):
 
     success: bool = Field(..., description="Успешность выполнения запроса")
     original_query: str = Field(..., description="Оригинальный запрос")
-    extracted_params: Optional[Dict[str, Any]] = Field(None, description="Извлеченные параметры")
+    extracted_params: Optional[Dict[str, Any]] = Field(
+        None, description="Извлеченные параметры"
+    )
+    search_results: Optional[Dict[str, Any]] = Field(
+        None, description="Результаты поиска (отели/комнаты)"
+    )
     error: Optional[str] = Field(None, description="Сообщение об ошибке")
 
 
 # ─────────────────────────────────────────────
-# Pydantic схема для параметров поиска
+# Pydantic схемы для моделей БД
 # ─────────────────────────────────────────────
+
+
+class HotelResponse(BaseModel):
+    """Pydantic схема для модели Hotel"""
+    
+    id: int
+    name: str
+    location: str
+    services: Optional[Dict[str, Any]] = None
+    room_quality: Optional[str] = None
+    image_id: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RoomResponse(BaseModel):
+    """Pydantic схема для модели Room"""
+    
+    id: int
+    name: str
+    descriptions: Optional[str] = None
+    price_per_day: int
+    services: Optional[Dict[str, Any]] = None
+    quality: Optional[str] = None
+    hotel_id: int
+    image_id: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Pydantic схема для параметров поиска
 class SearchParams(BaseModel):
     """
     Валидированные параметры поиска.
@@ -103,6 +136,11 @@ class SearchParams(BaseModel):
     required_services: List[str] = Field(
         default_factory=list,
         description="Список требуемых услуг (для фильтрации по JSON полю services в БД)",
+    )
+
+    description_keywords: List[str] = Field(
+        default_factory=list,
+        description="Ключевые слова для поиска в поле descriptions (текстовый поиск)",
     )
 
     additional_info: Optional[str] = Field(
@@ -157,6 +195,16 @@ class SearchParams(BaseModel):
         cleaned = [s.strip().lower() for s in v if s and s.strip()]
         return list(set(cleaned))  # Уникальные значения
 
+    @field_validator("description_keywords")
+    @classmethod
+    def validate_description_keywords(cls, v):
+        """Очищает и нормализует ключевые слова для поиска в descriptions"""
+        if not v:
+            return []
+        # Убираем пустые строки и дубликаты
+        cleaned = [s.strip().lower() for s in v if s and s.strip()]
+        return list(set(cleaned))  # Уникальные значения
+
     model_config = ConfigDict(
         # Разрешаем дополнительные поля (для расширяемости)
         extra="forbid",
@@ -170,9 +218,8 @@ class SearchParams(BaseModel):
                 "price_max": 50000,
                 "quality": "люкс",
                 "required_services": ["wifi", "бассейн"],
+                "description_keywords": ["панорамный", "с видом на"],
                 "additional_info": None,
             }
-        }
+        },
     )
-
-
