@@ -95,18 +95,21 @@ class EmbeddingClient:
 
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """
-        Сгенерировать эмбеддинги для списка текстов за один запрос.
-
-        Args:
-            texts: Список строк.
-
-        Returns:
-            Список векторов в том же порядке.
+        Генерирует эмбеддинги для списка текстов.
+        
+        Ollama не поддерживает пакетную обработку, поэтому обрабатываем по одному.
         """
         if not texts:
             return []
+        
         logger.info(f"Embed batch request: {len(texts)} текстов")
-        return await self._ollama_embed(texts)
+        embeddings = []
+        
+        for text in texts:
+            embedding = await self.embed(text)
+            embeddings.append(embedding)
+        
+        return embeddings
 
     async def __aenter__(self):
         return self
@@ -125,19 +128,22 @@ class EmbeddingClient:
             f"{self.config.base_url}/api/embeddings",
             json={
                 "model": self.config.model,
-                "input": texts if len(texts) > 1 else texts[0],
+                "prompt": texts[0] if len(texts) == 1 else texts,
             },
         )
         response.raise_for_status()
         data = response.json()
 
-        # Ollama возвращает `embeddings` (массив) даже для одного текста,
-        # но на всякий случай нормализуем вывод.
+        # Ollama возвращает `embedding` (один вектор) или `embeddings` (массив векторов)
+        # Нормализуем вывод для единообразия.
+        embedding = data.get("embedding", [])
         embeddings = data.get("embeddings", [])
-
-        # Если передали один текст, Ollama может вернуть просто один вектор
-        # внутри embeddings; оборачиваем в список для единообразия.
-        if embeddings and isinstance(embeddings[0], (int, float)):
+        
+        # Если есть embedding, используем его
+        if embedding:
+            embeddings = [embedding]
+        elif embeddings and isinstance(embeddings[0], (int, float)):
+            # Если embeddings - это один вектор (не массив), оборачиваем в список
             embeddings = [embeddings]
 
         if len(embeddings) != len(texts):

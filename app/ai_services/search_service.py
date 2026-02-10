@@ -163,26 +163,19 @@ class SearchService:
         self, params: SearchParams, pagination: Pagination
     ) -> List[RoomResponse]:
         """
-        Поиск в таблице rooms.
-
+        Поиск комнат с фильтрацией.
+        
         Применяет фильтры:
         - city (через JOIN с hotels.location)
         - location (через JOIN с hotels.location)
         - price_min/price_max (price_per_day)
         - quality (quality)
-        - required_services (JSON поле services)
-
-        Args:
-            params: Параметры поиска
-            pagination: Пагинация
-
-        Returns:
-            Список найденных комнат
         """
         from .query_builder import build_filtered_query
+        from sqlalchemy.orm import joinedload
 
-        # Базовый запрос
-        base_query = select(Room)
+        # Базовый запрос с join для получения информации об отеле
+        base_query = select(Room).options(joinedload(Room.hotel))
 
         # Применяем фильтры через QueryBuilder
         filtered_query = build_filtered_query(base_query, params, Room)
@@ -205,5 +198,14 @@ class SearchService:
             params.quality,
         )
 
-        # Конвертируем SQLAlchemy объекты в Pydantic модели
-        return [RoomResponse.model_validate(room) for room in rooms]
+        # Конвертируем SQLAlchemy объекты в Pydantic модели с информацией об отеле
+        room_responses = []
+        for room in rooms:
+            room_data = RoomResponse.model_validate(room)
+            # Добавляем информацию об отеле
+            if room.hotel:
+                room_data.hotel_name = room.hotel.name
+                room_data.hotel_location = room.hotel.location
+            room_responses.append(room_data)
+
+        return room_responses

@@ -13,6 +13,7 @@ from .llm_client import LLMClient, LLMConfig
 from .schemas import TestRequest, SearchRequest, SearchResponse
 from .validation_service import SearchParamsValidator
 from .search_service import SearchService
+from .hybrid_search import HybridSearchService, should_use_hybrid_search
 from app.db.base import get_session
 
 logger = logging.getLogger(__name__)
@@ -135,3 +136,37 @@ async def search(
     except Exception as e:
         logger.error("Search failed for query '%s': %s", request.query, e)
         raise HTTPException(status_code=500, detail=f"Ошибка поиска: {str(e)}")
+
+
+@router.post("/search/v2", tags=["AI Search"])
+async def smart_search(
+    request: SearchRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Умный поиск с автоматическим выбором метода.
+    
+    - Простые запросы → SQL (быстро)
+    - Сложные запросы → Гибридный поиск (точность)
+    """
+    # 1. Извлекаем параметры через LLM
+    validator = SearchParamsValidator()
+    params = await validator.extract_and_validate_from_query(request.query)
+    
+    # 2. Выбираем метод поиска
+    if should_use_hybrid_search(request.query, params):
+        # Гибридный поиск (векторы + SQL)
+        logger.info(f"Using HYBRID search for: {request.query}")
+        
+        hybrid_service = HybridSearchService(session)
+        results = await hybrid_service.hybrid_search(request.query, params)
+        
+    else:
+        # Обычный SQL поиск
+        logger.info(f"Using SQL search for: {request.query}")
+        
+        search_service = SearchService(session)
+        results = await search_service.search(params)
+        results["search_method"] = "sql"
+    
+    return results

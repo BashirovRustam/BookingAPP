@@ -101,6 +101,8 @@ class RoomResponse(BaseModel):
     quality: Optional[str] = None
     hotel_id: int
     image_id: Optional[int] = None
+    hotel_name: Optional[str] = None  # Название отеля
+    hotel_location: Optional[str] = None  # Локация отеля (город)
 
     model_config = ConfigDict(from_attributes=True)
 
