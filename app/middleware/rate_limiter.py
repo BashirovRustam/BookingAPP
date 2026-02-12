@@ -15,9 +15,9 @@ def get_remote_address_or_user_id(request: Request) -> str:
     для остальных - IP адрес.
     """
     # Проверяем, есть ли пользователь в request.state (устанавливается в middleware)
-    if hasattr(request.state, 'user') and request.state.user:
+    if hasattr(request.state, "user") and request.state.user:
         return f"user:{request.state.user.id}"
-    
+
     # Для неаутентифицированных пользователей используем IP
     return get_remote_address(request)
 
@@ -26,12 +26,14 @@ def get_remote_address_or_user_id(request: Request) -> str:
 limiter = Limiter(key_func=get_remote_address_or_user_id)
 
 
-async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Response:
+async def rate_limit_exceeded_handler(
+    request: Request, exc: RateLimitExceeded
+) -> Response:
     """
     Кастомный обработчик превышения лимита запросов.
     """
     from fastapi.responses import JSONResponse
-    
+
     # Извлекаем время ожидания из сообщения об ошибке
     retry_after = "60"  # по умолчанию 60 секунд
     if "retry after" in str(exc.detail).lower():
@@ -39,13 +41,13 @@ async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) 
             retry_after = str(exc.detail).split("retry after ")[1].split(" ")[0]
         except (IndexError, ValueError):
             pass
-    
+
     return JSONResponse(
         status_code=429,
         content={
             "detail": "Too many requests. Please try again later.",
             "error_code": "RATE_LIMIT_EXCEEDED",
-            "retry_after": retry_after
+            "retry_after": retry_after,
         },
-        headers={"Retry-After": retry_after}
+        headers={"Retry-After": retry_after},
     )
