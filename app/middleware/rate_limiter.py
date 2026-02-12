@@ -2,11 +2,10 @@
 Rate limiting middleware для защиты API от abuse.
 """
 
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi import Request, Response
-from app.User.models import User
 
 
 def get_remote_address_or_user_id(request: Request) -> str:
