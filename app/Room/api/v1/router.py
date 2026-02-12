@@ -4,8 +4,9 @@
 
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.middleware.rate_limiter import limiter
 
 from app.Dependencies.filters import RoomFilter
 from app.Room.schemas import RoomCreate, RoomRead, RoomUpdate
@@ -31,10 +32,12 @@ router = APIRouter(
     response_model=List[RoomRead],
     summary="Получить список всех комнат",
 )
+@limiter.limit("120/minute")  # Ограничение: 120 запросов в минуту
 async def list_rooms(
     filters: RoomFilter = Depends(),
     pagination: Pagination = Depends(get_pagination),
     session: AsyncSession = Depends(get_session),
+    request: Request = None,
 ) -> list[RoomRead]:
     """
     Вернуть все комнаты.
@@ -50,9 +53,11 @@ async def list_rooms(
     response_model=RoomRead,
     summary="Получить комнату по ID",
 )
+@limiter.limit("200/minute")  # Ограничение: 200 запросов в минуту
 async def get_room(
     room_id: int,
     session: AsyncSession = Depends(get_session),
+    request: Request = None,
 ) -> RoomRead:
     """
     Вернуть одну комнату.

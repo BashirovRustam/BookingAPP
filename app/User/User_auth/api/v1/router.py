@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from slowapi import Limiter
+from app.middleware.rate_limiter import limiter
 
 from app.services.UserServices import (
     authenticate_user as service_authenticate_user,
@@ -35,9 +37,11 @@ router = APIRouter(
     status_code=status.HTTP_201_CREATED,
     summary="Регистрация нового пользователя",
 )
+@limiter.limit("5/minute")  # Ограничение: 5 регистраций в минуту
 async def register_user(
     payload: UserCreate,
     session: AsyncSession = Depends(get_session),
+    request: Request = None,
 ) -> UserRead:
     user = await service_create_user(session=session, user_in=payload)
     if user is None:
@@ -54,10 +58,12 @@ async def register_user(
     response_model=TokenResponse,
     summary="Вход пользователя и получение JWT токена",
 )
+@limiter.limit("10/minute")  # Ограничение: 10 попыток входа в минуту
 async def login(
     payload: LoginRequest,
     response: Response,
     session: AsyncSession = Depends(get_session),
+    request: Request = None,
 ) -> TokenResponse:
     user = await service_authenticate_user(
         session=session,
@@ -110,10 +116,12 @@ async def login(
     response_model=TokenResponse,
     summary="Обновление access токена",
 )
+@limiter.limit("20/minute")  # Ограничение: 20 обновлений токена в минуту
 async def refresh(
     response: Response,
     session: AsyncSession = Depends(get_session),
     refresh_token: str | None = Cookie(None, alias="refresh_token"),
+    request: Request = None,
 ) -> TokenResponse:
     if refresh_token is None:
         raise HTTPException(
@@ -181,11 +189,13 @@ async def refresh(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Выход пользователя",
 )
+@limiter.limit("10/minute")  # Ограничение: 10 выходов в минуту
 async def logout(
     response: Response,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
     refresh_token: str | None = Cookie(None, alias="refresh_token"),
+    request: Request = None,
 ) -> None:
     if refresh_token:
         refresh_session = await verify_refresh_token(

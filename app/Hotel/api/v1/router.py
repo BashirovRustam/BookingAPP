@@ -1,7 +1,8 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.middleware.rate_limiter import limiter
 
 from app.Dependencies.filters import HotelFilter, get_hotel_filter
 from app.Hotel.schemas import HotelCreate, HotelResponse, HotelUpdate
@@ -30,9 +31,11 @@ router = APIRouter(
     response_model=list[HotelResponse],
     summary="Получить список всех отелей",
 )
+@limiter.limit("100/minute")  # Ограничение: 100 запросов в минуту
 async def list_hotels(
     pagination: Pagination = Depends(get_pagination),
     session: AsyncSession = Depends(get_session),
+    request: Request = None,
 ) -> list[HotelResponse]:
     """
     Вернуть список всех отелей из базы данных.
@@ -50,9 +53,11 @@ async def list_hotels(
     response_model=HotelResponse,
     summary="Получить отель по ID",
 )
+@limiter.limit("200/minute")  # Ограничение: 200 запросов в минуту
 async def get_hotel(
     hotel_id: int,
     session: AsyncSession = Depends(get_session),
+    request: Request = None,
 ) -> HotelResponse:
     """
     Вернуть один отель по его ID.
@@ -75,10 +80,12 @@ async def get_hotel(
     response_model=list[RoomRead],
     summary="Получить все комнаты отеля",
 )
+@limiter.limit("150/minute")  # Ограничение: 150 запросов в минуту
 async def list_rooms_by_hotel(
     hotel_id: int,
     pagination: Pagination = Depends(get_pagination),
     session: AsyncSession = Depends(get_session),
+    request: Request = None,
 ):
     """
     Вернуть список всех комнат, принадлежащих конкретному отелю.

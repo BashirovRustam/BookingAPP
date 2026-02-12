@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.middleware.rate_limiter import limiter
 from app.User.models import User
 from app.User.User_auth.auth import get_current_user
 from app.db.base import get_session
@@ -18,9 +19,11 @@ router = APIRouter(
     response_model=MeResponse,
     summary="Бронирование клиента",
 )
+@limiter.limit("50/minute")  # Ограничение: 50 запросов в минуту для аутентифицированных пользователей
 async def read_my_profile(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
+    request: Request = None,
 ):
     bookings = await get_user_bookings(current_user.id, session)
     return MeResponse(

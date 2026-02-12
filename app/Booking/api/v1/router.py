@@ -12,8 +12,9 @@
 from typing import List, Optional
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.middleware.rate_limiter import limiter
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 
@@ -103,10 +104,12 @@ async def get_booking(
     status_code=status.HTTP_201_CREATED,
     summary="Создать новое бронирование",
 )
+@limiter.limit("10/minute")  # Ограничение: 10 бронирований в минуту
 async def create_booking(
     booking_in: BookingCreate,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
+    request: Request = None,
 ) -> BookingResponse:
     """
     Создать новое бронирование и вернуть его данные.
@@ -274,7 +277,12 @@ async def delete_booking(
     status_code=status.HTTP_201_CREATED,
     summary="Оплата бронирования",
 )
-async def pay_booking(booking_id: int, session: AsyncSession = Depends(get_session)):
+@limiter.limit("5/minute")  # Ограничение: 5 оплат в минуту
+async def pay_booking(
+    booking_id: int, 
+    session: AsyncSession = Depends(get_session),
+    request: Request = None,
+):
     # 1. Получить booking из БД
     booking = await get_booking_by_id(session, booking_id)
     if not booking:
