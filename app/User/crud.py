@@ -69,12 +69,7 @@ async def update_user(
     if not update_data:
         return await get_user_by_id(session=session, user_id=user_id)
 
-    stmt = (
-        update(User)
-        .where(User.id == user_id)
-        .values(**update_data)
-        .returning(User)
-    )
+    stmt = update(User).where(User.id == user_id).values(**update_data).returning(User)
     result = await session.execute(stmt)
     updated = result.scalar_one_or_none()
     if updated is None:

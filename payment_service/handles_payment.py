@@ -24,7 +24,9 @@ async def handle_payment_completed(body: dict, session: AsyncSession):
     capture_id = resource.get("id")
 
     if not order_id or not capture_id:
-        logger.warning("⚠️ Некорректный webhook payload: отсутствует order_id или capture_id")
+        logger.warning(
+            "⚠️ Некорректный webhook payload: отсутствует order_id или capture_id"
+        )
         logger.debug(f"Webhook body: {body}")
         return
 
@@ -45,23 +47,26 @@ async def handle_payment_completed(body: dict, session: AsyncSession):
         await session.commit()
         logger.info(f"✅ Платёж {payment.id} переведён в статус completed")
     else:
-        logger.info(f"ℹ️ Платёж {payment.id} уже имеет статус completed — отправляем чек повторно")
+        logger.info(
+            f"ℹ️ Платёж {payment.id} уже имеет статус completed — отправляем чек повторно"
+        )
 
     # Получаем email пользователя
     user_email = payment.user_email
     user_name = None
-    
+
     # Если email не сохранен в Payment, пытаемся получить через внутренний API monolith
     if not user_email:
         try:
             monolith_url = settings.MONOLITH_URL
-            internal_token = getattr(settings, "INTERNAL_SERVICE_TOKEN", "internal-service-token")
+            internal_token = getattr(
+                settings, "INTERNAL_SERVICE_TOKEN", "internal-service-token"
+            )
             internal_url = f"{monolith_url}/api/v1/bookings/internal/{payment.booking_id}/user-email"
-            
+
             async with httpx.AsyncClient(timeout=5.0) as client:
                 user_resp = await client.get(
-                    internal_url,
-                    headers={"X-Internal-Service": internal_token}
+                    internal_url, headers={"X-Internal-Service": internal_token}
                 )
                 if user_resp.status_code == 200:
                     user_data = user_resp.json()
@@ -69,19 +74,25 @@ async def handle_payment_completed(body: dict, session: AsyncSession):
                     user_name = user_data.get("full_name")
                     if not user_name:
                         user_name = None
-                    
+
                     # Сохраняем email в Payment для будущих использований
                     if user_email:
                         payment.user_email = user_email
                         await session.commit()
-                        logger.info(f"✅ Email пользователя сохранен в Payment {payment.id}")
+                        logger.info(
+                            f"✅ Email пользователя сохранен в Payment {payment.id}"
+                        )
                 else:
-                    logger.warning(f"⚠️ Не удалось получить email через внутренний API: {user_resp.status_code} - {user_resp.text}")
+                    logger.warning(
+                        f"⚠️ Не удалось получить email через внутренний API: {user_resp.status_code} - {user_resp.text}"
+                    )
         except Exception as e:
             logger.warning(f"⚠️ Не удалось получить email через API monolith: {e}")
-    
+
     if not user_email:
-        logger.error(f"❌ Не удалось получить email пользователя для платежа {payment.id}")
+        logger.error(
+            f"❌ Не удалось получить email пользователя для платежа {payment.id}"
+        )
         return
 
     # Формируем payload для Notification Service
@@ -90,7 +101,9 @@ async def handle_payment_completed(body: dict, session: AsyncSession):
             payment_id=str(payment.id),
             order_id=payment.paypal_order_id or "",
             capture_id=payment.paypal_capture_id or "",
-            amount=str(payment.amount / 100.0),  # Конвертируем из копеек в основную валюту
+            amount=str(
+                payment.amount / 100.0
+            ),  # Конвертируем из копеек в основную валюту
             currency=payment.currency,
             user_email=user_email,
             user_name=user_name,
@@ -98,24 +111,32 @@ async def handle_payment_completed(body: dict, session: AsyncSession):
             created_at=payment.created_at.isoformat(),
             completed_at=datetime.utcnow().isoformat(),
         )
-        
-        logger.info(f"📤 Отправка запроса на генерацию чека для платежа {payment.id} на email {user_email}")
-        
+
+        logger.info(
+            f"📤 Отправка запроса на генерацию чека для платежа {payment.id} на email {user_email}"
+        )
+
         # Отправляем запрос через notification_client
         success = await notification_client.send_receipt(payload)
-        
+
         if success:
-            logger.info(f"✅ Запрос на отправку PDF чека для платежа {payment.id} успешно отправлен в Notification Service")
+            logger.info(
+                f"✅ Запрос на отправку PDF чека для платежа {payment.id} успешно отправлен в Notification Service"
+            )
         else:
-            logger.error(f"❌ Не удалось отправить запрос на генерацию чека для платежа {payment.id}")
-            
+            logger.error(
+                f"❌ Не удалось отправить запрос на генерацию чека для платежа {payment.id}"
+            )
+
     except Exception as e:
-        logger.exception(f"❌ Критическая ошибка при отправке запроса на генерацию чека: {e}")
+        logger.exception(
+            f"❌ Критическая ошибка при отправке запроса на генерацию чека: {e}"
+        )
 
 
 async def handle_payment_failed(body: dict, session: AsyncSession):
     """Обработка события: оплата отклонена или провалилась"""
-    print(f"🔍 Начало обработки failed события")
+    print("🔍 Начало обработки failed события")
     print(f"🔍 Полное тело вебхука: {body}")
 
     resource = body.get("resource", {})

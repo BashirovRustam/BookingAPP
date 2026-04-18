@@ -38,8 +38,8 @@ class BookingCreate(BaseModel):
 
         Правила:
         - автоматически считаются totals_day и total_cost.
-        
-        Примечание: валидация дат (date_to > date_from, date_from не в прошлом) 
+
+        Примечание: валидация дат (date_to > date_from, date_from не в прошлом)
         выполняется на сервисном слое для корректной обработки ошибок.
         """
         self.totals_day = (self.date_to - self.date_from).days

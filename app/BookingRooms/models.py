@@ -1,7 +1,13 @@
-from sqlalchemy import ForeignKey, Integer
+from typing import TYPE_CHECKING
+
+from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.Booking.models import Booking
+    from app.Room.models import Room
 
 
 class BookingRooms(Base):
@@ -16,7 +22,9 @@ class BookingRooms(Base):
         primary_key=True,
     )
 
-    booking: Mapped["Booking"] = relationship(back_populates="booking_rooms", overlaps="rooms,booking")
-    room: Mapped["Room"] = relationship(back_populates="booking_rooms", overlaps="booking,rooms")
-
-
+    booking: Mapped["Booking"] = relationship(
+        back_populates="booking_rooms", overlaps="rooms,booking"
+    )
+    room: Mapped["Room"] = relationship(
+        back_populates="booking_rooms", overlaps="booking,rooms"
+    )

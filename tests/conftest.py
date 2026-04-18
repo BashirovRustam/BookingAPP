@@ -7,19 +7,17 @@ from sqlalchemy.pool import StaticPool
 from httpx import AsyncClient, ASGITransport
 
 from app.Hotel.models import Base
-from app.Hotel.schemas import HotelCreate, HotelUpdate
+from app.Hotel.schemas import HotelCreate
 from app.services.HotelServices import create_hotel as service_create_hotel
 
-from app.Room.schemas import RoomCreate, RoomUpdate
+from app.Room.schemas import RoomCreate
 from app.Room.crud import create_room
 from app.services.RoomServices import create_room as service_create_room
 
-from app.User.models import User, RolesEnum
+from app.User.models import RolesEnum
 from app.User import schemas
 from app.services.UserServices import create_user as service_create_user
 
-from app.BookingRooms.models import BookingRooms
-from app.Booking.models import Booking
 from app.User.User_auth.auth import create_access_token
 from app.main import app
 from app.db.base import get_session
@@ -228,7 +226,7 @@ async def booking_factory(
     booking = await service_create_booking(
         db_session, booking_in, user_id=user_factory.id
     )
-    
+
     return booking
 
 
@@ -237,9 +235,10 @@ async def client(db_session):
     """
     Фикстура для создания AsyncClient для API тестов с переопределением БД.
     """
+
     def override_get_session():
         yield db_session
-    
+
     app.dependency_overrides[get_session] = override_get_session
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:

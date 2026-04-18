@@ -5,7 +5,7 @@ import pytest
 
 from app.Booking import crud as booking_crud
 from app.Booking.models import Booking
-from app.Booking.schemas import BookingCreate, BookingUpdate
+from app.Booking.schemas import BookingCreate
 from app.Hotel.models import Hotel
 from app.Room.models import Room
 from app.User.models import User
@@ -26,16 +26,10 @@ async def test_create_booking_success(
     """
     # Подготовка данных
     today = date.today()
-    date_from = today + timedelta(days=1)
+    date_from = today + timedelta(days=10)
     date_to = date_from + timedelta(days=5)
     price_per_day = Decimal("1500.00")
 
-    booking_in = BookingCreate(
-        date_from=date_from,
-        date_to=date_to,
-        price_per_day=price_per_day,
-        room_id=created_room_fix.id,
-    )
     totals_day = (date_to - date_from).days
     total_cost = totals_day * int(price_per_day)
 

@@ -1,9 +1,14 @@
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import ForeignKey, Integer, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.Hotel.models import Hotel
+    from app.BookingRooms.models import BookingRooms
+    from app.Booking.models import Booking
 
 
 class Room(Base):
@@ -30,5 +35,3 @@ class Room(Base):
         back_populates="rooms",
         overlaps="booking_rooms,room,booking",
     )
-
-

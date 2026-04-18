@@ -158,7 +158,10 @@ async def test_create_room_unauthorized(client, created_hotel):
         "hotel_id": created_hotel.id,
     }
     response = await client.post("/api/v1/rooms", json=room_data)
-    assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+    assert response.status_code in [
+        status.HTTP_401_UNAUTHORIZED,
+        status.HTTP_403_FORBIDDEN,
+    ]
 
 
 @pytest.mark.asyncio
@@ -198,8 +201,13 @@ async def test_update_room_as_admin(client, admin_headers, created_room_fix):
 async def test_update_room_unauthorized(client, created_room_fix):
     """Обновление комнаты без авторизации."""
     update_data = {"price_per_day": 2000}
-    response = await client.patch(f"/api/v1/rooms/{created_room_fix.id}", json=update_data)
-    assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+    response = await client.patch(
+        f"/api/v1/rooms/{created_room_fix.id}", json=update_data
+    )
+    assert response.status_code in [
+        status.HTTP_401_UNAUTHORIZED,
+        status.HTTP_403_FORBIDDEN,
+    ]
 
 
 @pytest.mark.asyncio
@@ -216,7 +224,9 @@ async def test_update_room_as_user(client, user_headers, created_room_fix):
 async def test_update_room_not_found(client, admin_headers):
     """Обновление несуществующей комнаты."""
     update_data = {"price_per_day": 2000}
-    response = await client.patch("/api/v1/rooms/99999", json=update_data, headers=admin_headers)
+    response = await client.patch(
+        "/api/v1/rooms/99999", json=update_data, headers=admin_headers
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
@@ -228,7 +238,9 @@ async def test_update_room_not_found(client, admin_headers):
 @pytest.mark.asyncio
 async def test_delete_room_as_admin(client, admin_headers, created_room_fix):
     """Удаление комнаты как admin."""
-    response = await client.delete(f"/api/v1/rooms/{created_room_fix.id}", headers=admin_headers)
+    response = await client.delete(
+        f"/api/v1/rooms/{created_room_fix.id}", headers=admin_headers
+    )
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
 
@@ -236,7 +248,10 @@ async def test_delete_room_as_admin(client, admin_headers, created_room_fix):
 async def test_delete_room_unauthorized(client, created_room_fix):
     """Удаление комнаты без авторизации."""
     response = await client.delete(f"/api/v1/rooms/{created_room_fix.id}")
-    assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+    assert response.status_code in [
+        status.HTTP_401_UNAUTHORIZED,
+        status.HTTP_403_FORBIDDEN,
+    ]
 
 
 @pytest.mark.asyncio

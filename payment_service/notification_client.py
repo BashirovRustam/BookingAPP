@@ -35,7 +35,7 @@ class NotificationClient:
 
                 if response.status_code == 202:  # Accepted
                     logger.info(
-                        f"✅ Запрос на отправку чека отправлен в Notification Service"
+                        "✅ Запрос на отправку чека отправлен в Notification Service"
                     )
                     return True
                 else:
@@ -45,7 +45,7 @@ class NotificationClient:
                     return False
 
         except httpx.TimeoutException:
-            logger.error(f"❌ Timeout при обращении к Notification Service")
+            logger.error("❌ Timeout при обращении к Notification Service")
             return False
         except httpx.RequestError as e:
             logger.error(f"❌ Ошибка при обращении к Notification Service: {e}")

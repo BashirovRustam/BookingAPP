@@ -1,9 +1,12 @@
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import Integer, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.Room.models import Room
 
 
 class Hotel(Base):
@@ -20,5 +23,3 @@ class Hotel(Base):
         back_populates="hotel",
         cascade="all, delete-orphan",
     )
-
-

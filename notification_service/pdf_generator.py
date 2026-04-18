@@ -78,7 +78,7 @@ def generate_receipt_pdf(receipt_data: dict) -> BytesIO:
             receipt_data["completed_at"].replace("Z", "+00:00")
         )
         date_str = completed_dt.strftime("%B %d, %Y %H:%M:%S UTC")
-    except:
+    except (ValueError, KeyError):
         date_str = receipt_data["completed_at"]
 
     transaction_data = [
@@ -157,7 +157,7 @@ def generate_receipt_pdf(receipt_data: dict) -> BytesIO:
                 receipt_data["transaction_fee"]
             )
             summary_data.append(["Total:", f"{total:.2f} {receipt_data['currency']}"])
-        except:
+        except (ValueError, KeyError):
             pass
 
     summary_table = Table(summary_data, colWidths=[4.5 * inch, 1.5 * inch])

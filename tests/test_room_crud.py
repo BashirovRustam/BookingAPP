@@ -2,11 +2,9 @@ import pytest
 
 from app.Dependencies.filters import RoomFilter
 from app.Dependencies.pagination import Pagination
-from app.Room import models
 from app.Room import schemas
 from app.Room.models import Room
 from app.services.RoomServices import (
-    create_room,
     delete_room,
     get_all_rooms,
     get_room_by_id,

@@ -72,7 +72,9 @@ def send_receipt_email(self, receipt_data: dict):
         receipt_data: Словарь с данными платежа
     """
     try:
-        logger.info(f"📧 Начинаем отправку чека для payment_id={receipt_data.get('payment_id', 'unknown')}")
+        logger.info(
+            f"📧 Начинаем отправку чека для payment_id={receipt_data.get('payment_id', 'unknown')}"
+        )
 
         # Генерируем PDF
         pdf_buffer = generate_receipt_pdf(receipt_data)
@@ -155,4 +157,3 @@ def send_receipt_email(self, receipt_data: dict):
     except Exception as exc:
         logger.error(f"❌ Ошибка отправки чека: {exc}", exc_info=True)
         raise self.retry(exc=exc, countdown=60)
-

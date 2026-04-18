@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import enum
 from typing import Optional
 
-from sqlalchemy import String, Float, DateTime, Enum
+from sqlalchemy import String, DateTime, Enum
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base
 
 Base = declarative_base()
@@ -45,7 +45,7 @@ class Payment(Base):
     paypal_capture_id: Mapped[Optional[str]] = mapped_column(String(64), unique=True)
 
     error_message: Mapped[Optional[str]] = mapped_column(String(255))
-    
+
     # Email пользователя для отправки чека
     user_email: Mapped[Optional[str]] = mapped_column(String(255))
 

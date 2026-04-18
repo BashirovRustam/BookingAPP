@@ -4,7 +4,7 @@ CRUD — слой работы с БД для BookingRooms (связь брон�
 Только операции с БД, без бизнес-логики. Логика — в app.services.BookingRoomsServices.
 """
 
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession

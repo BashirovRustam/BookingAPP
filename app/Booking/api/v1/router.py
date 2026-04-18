@@ -26,7 +26,6 @@ from app.services.BookingServices import (
     get_booking_by_id as service_get_booking_by_id,
     update_booking as service_update_booking,
     confirm_booking as service_confirm_booking,
-    RoomNotAvailableError,
     BookingNotFoundError,
     BookingInvalidStatusError,
 )
@@ -179,7 +178,7 @@ async def confirm_booking(
             session=session,
             booking_id=booking_id,
         )
-    except BookingNotFoundError as e:
+    except BookingNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Booking with id={booking_id} not found",
@@ -262,7 +261,7 @@ async def delete_booking(
 )
 async def pay_booking(booking_id: int, session: AsyncSession = Depends(get_session)):
     # 1. Получить booking из БД
-    booking = await get_booking_by_id(session, booking_id)
+    booking = await service_get_booking_by_id(session, booking_id)
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 

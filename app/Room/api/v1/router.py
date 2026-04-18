@@ -4,7 +4,7 @@
 
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Dependencies.filters import RoomFilter
@@ -103,9 +103,7 @@ async def update_room(
     """
     Обновить существующую комнату (только для админов).
     """
-    room = await service_update_room(
-        session=session, room_id=room_id, room_in=payload
-    )
+    room = await service_update_room(session=session, room_id=room_id, room_in=payload)
     if room is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -136,4 +134,3 @@ async def delete_room(
             detail=f"Room with id={room_id} not found",
         )
     return None
-

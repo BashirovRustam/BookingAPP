@@ -339,9 +339,6 @@ async def test_update_hotel_not_found(db_session):
     assert updated_hotel is None
 
 
-import pytest
-
-
 @pytest.mark.anyio
 async def test_delete_hotel(db_session, created_hotel):
     hotel_id = created_hotel.id

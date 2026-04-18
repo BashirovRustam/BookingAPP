@@ -1,5 +1,5 @@
 from datetime import date
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 from enum import Enum
 
 from sqlalchemy import Date, ForeignKey, Integer
@@ -7,7 +7,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Enum as SqlEnum
 
 from app.db.base import Base
-from app.User.models import User
+
+if TYPE_CHECKING:
+    from app.User.models import User
+    from app.Room.models import Room
+    from app.BookingRooms.models import BookingRooms
 
 
 class BookingStatus(str, Enum):
