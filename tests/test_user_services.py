@@ -310,7 +310,7 @@ async def test_update_user_email_duplicate_returns_none(db_session: AsyncSession
     email2 = f"user2_{uuid.uuid4().hex[:8]}@example.com"
 
     # Создаём двух пользователей
-    user1 = await create_user(
+    await create_user(
         db_session,
         UserCreate(
             email=email1,
