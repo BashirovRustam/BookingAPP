@@ -228,7 +228,7 @@ async def booking_factory(
     booking = await service_create_booking(
         db_session, booking_in, user_id=user_factory.id
     )
-    
+
     return booking
 
 
@@ -237,9 +237,10 @@ async def client(db_session):
     """
     Фикстура для создания AsyncClient для API тестов с переопределением БД.
     """
+
     def override_get_session():
         yield db_session
-    
+
     app.dependency_overrides[get_session] = override_get_session
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:

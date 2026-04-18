@@ -20,5 +20,3 @@ class Hotel(Base):
         back_populates="hotel",
         cascade="all, delete-orphan",
     )
-
-

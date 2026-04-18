@@ -39,22 +39,29 @@ async def create_payment(
     user_email = None
     try:
         monolith_url = settings.MONOLITH_URL
-        internal_token = getattr(settings, "INTERNAL_SERVICE_TOKEN", "internal-service-token")
+        internal_token = getattr(
+            settings, "INTERNAL_SERVICE_TOKEN", "internal-service-token"
+        )
         internal_url = f"{monolith_url}/api/v1/bookings/internal/{payment_data.booking_id}/user-email"
-        
+
         async with httpx.AsyncClient(timeout=5.0) as client:
             user_resp = await client.get(
-                internal_url,
-                headers={"X-Internal-Service": internal_token}
+                internal_url, headers={"X-Internal-Service": internal_token}
             )
             if user_resp.status_code == 200:
                 user_data = user_resp.json()
                 user_email = user_data.get("email")
-                logger.info(f"✅ Получен email пользователя для booking {payment_data.booking_id}: {user_email}")
+                logger.info(
+                    f"✅ Получен email пользователя для booking {payment_data.booking_id}: {user_email}"
+                )
             else:
-                logger.warning(f"⚠️ Не удалось получить email через внутренний API: {user_resp.status_code} - {user_resp.text}")
+                logger.warning(
+                    f"⚠️ Не удалось получить email через внутренний API: {user_resp.status_code} - {user_resp.text}"
+                )
     except Exception as e:
-        logger.warning(f"⚠️ Не удалось получить email через API monolith при создании платежа: {e}")
+        logger.warning(
+            f"⚠️ Не удалось получить email через API monolith при создании платежа: {e}"
+        )
 
     # 2. Создаём Payment в БД
     new_payment = Payment(

@@ -92,10 +92,10 @@ async def create_booking(
     4. Сохранение в БД через CRUD.
     """
     today = date.today()
-    
+
     if booking_in.date_from < today:
         raise InvalidBookingDatesError("Нельзя бронировать прошедшие даты")
-    
+
     if booking_in.date_to <= booking_in.date_from:
         raise InvalidBookingDatesError("Дата окончания должна быть позже даты начала")
 
@@ -165,9 +165,7 @@ async def update_booking(
 
     room_id = update_data.pop("room_id", None)
 
-    if any(
-        key in update_data for key in ("date_from", "date_to", "price_per_day")
-    ):
+    if any(key in update_data for key in ("date_from", "date_to", "price_per_day")):
         current_booking = await booking_crud.get_booking_by_id(
             session=session,
             booking_id=booking_id,
@@ -177,9 +175,7 @@ async def update_booking(
 
         date_from = update_data.get("date_from", current_booking.date_from)
         date_to = update_data.get("date_to", current_booking.date_to)
-        price_per_day = update_data.get(
-            "price_per_day", current_booking.price_per_day
-        )
+        price_per_day = update_data.get("price_per_day", current_booking.price_per_day)
 
         try:
             totals_day, total_cost = _calculate_totals(

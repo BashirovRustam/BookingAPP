@@ -44,10 +44,7 @@ async def update_hotel(
         return await get_hotel_by_id(session=session, hotel_id=hotel_id)
 
     stmt = (
-        update(Hotel)
-        .where(Hotel.id == hotel_id)
-        .values(**update_data)
-        .returning(Hotel)
+        update(Hotel).where(Hotel.id == hotel_id).values(**update_data).returning(Hotel)
     )
     result = await session.execute(stmt)
     updated = result.scalar_one_or_none()

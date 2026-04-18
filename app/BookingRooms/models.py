@@ -16,7 +16,9 @@ class BookingRooms(Base):
         primary_key=True,
     )
 
-    booking: Mapped["Booking"] = relationship(back_populates="booking_rooms", overlaps="rooms,booking")
-    room: Mapped["Room"] = relationship(back_populates="booking_rooms", overlaps="booking,rooms")
-
-
+    booking: Mapped["Booking"] = relationship(
+        back_populates="booking_rooms", overlaps="rooms,booking"
+    )
+    room: Mapped["Room"] = relationship(
+        back_populates="booking_rooms", overlaps="booking,rooms"
+    )

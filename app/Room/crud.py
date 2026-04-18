@@ -42,12 +42,7 @@ async def update_room(
     if not update_data:
         return await get_room_by_id(session=session, room_id=room_id)
 
-    stmt = (
-        update(Room)
-        .where(Room.id == room_id)
-        .values(**update_data)
-        .returning(Room)
-    )
+    stmt = update(Room).where(Room.id == room_id).values(**update_data).returning(Room)
     result = await session.execute(stmt)
     updated = result.scalar_one_or_none()
     if updated is None:

@@ -197,5 +197,6 @@ async def logout(
 
     await revoke_all_user_refresh_tokens(session=session, user_id=current_user.id)
 
-    response.delete_cookie(key="refresh_token", httponly=True, secure=True, samesite="lax")
-
+    response.delete_cookie(
+        key="refresh_token", httponly=True, secure=True, samesite="lax"
+    )

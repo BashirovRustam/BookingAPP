@@ -30,5 +30,3 @@ class Room(Base):
         back_populates="rooms",
         overlaps="booking_rooms,room,booking",
     )
-
-

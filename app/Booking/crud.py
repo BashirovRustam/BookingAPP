@@ -137,14 +137,10 @@ async def update_booking(
         await session.execute(
             delete(BookingRooms).where(BookingRooms.booking_id == booking_id)
         )
-        session.add(
-            BookingRooms(booking_id=booking_id, room_id=room_id)
-        )
+        session.add(BookingRooms(booking_id=booking_id, room_id=room_id))
 
     await session.commit()
-    await session.refresh(
-        updated_booking, attribute_names=["booking_rooms", "rooms"]
-    )
+    await session.refresh(updated_booking, attribute_names=["booking_rooms", "rooms"])
     return updated_booking
 
 

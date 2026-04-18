@@ -35,7 +35,10 @@ async def test_list_bookings_as_admin(client, admin_headers, booking_factory):
 async def test_list_bookings_unauthorized(client):
     """Получение списка бронирований без авторизации."""
     response = await client.get("/api/v1/bookings")
-    assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+    assert response.status_code in [
+        status.HTTP_401_UNAUTHORIZED,
+        status.HTTP_403_FORBIDDEN,
+    ]
 
 
 @pytest.mark.asyncio
@@ -53,7 +56,9 @@ async def test_list_bookings_as_user(client, user_headers):
 @pytest.mark.asyncio
 async def test_get_booking_by_id_as_admin(client, admin_headers, booking_factory):
     """Получение бронирования по ID как admin."""
-    response = await client.get(f"/api/v1/bookings/{booking_factory.id}", headers=admin_headers)
+    response = await client.get(
+        f"/api/v1/bookings/{booking_factory.id}", headers=admin_headers
+    )
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["id"] == booking_factory.id
@@ -71,7 +76,10 @@ async def test_get_booking_by_id_not_found(client, admin_headers):
 async def test_get_booking_by_id_unauthorized(client, booking_factory):
     """Получение бронирования без авторизации."""
     response = await client.get(f"/api/v1/bookings/{booking_factory.id}")
-    assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+    assert response.status_code in [
+        status.HTTP_401_UNAUTHORIZED,
+        status.HTTP_403_FORBIDDEN,
+    ]
 
 
 # ============================================================================
@@ -89,9 +97,11 @@ async def test_create_booking_success(client, user_headers, created_room_fix):
         "price_per_day": 1000,
         "room_id": created_room_fix.id,
     }
-    
-    response = await client.post("/api/v1/bookings", json=booking_data, headers=user_headers)
-    
+
+    response = await client.post(
+        "/api/v1/bookings", json=booking_data, headers=user_headers
+    )
+
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
     assert data["id"] is not None
@@ -111,9 +121,10 @@ async def test_create_booking_unauthorized(client, created_room_fix):
         "room_id": created_room_fix.id,
     }
     response = await client.post("/api/v1/bookings", json=booking_data)
-    assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
-
-
+    assert response.status_code in [
+        status.HTTP_401_UNAUTHORIZED,
+        status.HTTP_403_FORBIDDEN,
+    ]
 
 
 # ============================================================================
@@ -155,7 +166,9 @@ async def test_update_booking_as_admin(client, admin_headers, booking_factory):
     """Обновление бронирования как admin."""
     update_data = {"price_per_day": 2500}
     response = await client.patch(
-        f"/api/v1/bookings/{booking_factory.id}", json=update_data, headers=admin_headers
+        f"/api/v1/bookings/{booking_factory.id}",
+        json=update_data,
+        headers=admin_headers,
     )
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -166,8 +179,13 @@ async def test_update_booking_as_admin(client, admin_headers, booking_factory):
 async def test_update_booking_unauthorized(client, booking_factory):
     """Обновление бронирования без авторизации."""
     update_data = {"price_per_day": 2500}
-    response = await client.patch(f"/api/v1/bookings/{booking_factory.id}", json=update_data)
-    assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+    response = await client.patch(
+        f"/api/v1/bookings/{booking_factory.id}", json=update_data
+    )
+    assert response.status_code in [
+        status.HTTP_401_UNAUTHORIZED,
+        status.HTTP_403_FORBIDDEN,
+    ]
 
 
 @pytest.mark.asyncio
@@ -184,7 +202,9 @@ async def test_update_booking_as_user(client, user_headers, booking_factory):
 async def test_update_booking_not_found(client, admin_headers):
     """Обновление несуществующего бронирования."""
     update_data = {"price_per_day": 2500}
-    response = await client.patch("/api/v1/bookings/99999", json=update_data, headers=admin_headers)
+    response = await client.patch(
+        "/api/v1/bookings/99999", json=update_data, headers=admin_headers
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
@@ -206,7 +226,10 @@ async def test_delete_booking_as_admin(client, admin_headers, booking_factory):
 async def test_delete_booking_unauthorized(client, booking_factory):
     """Удаление бронирования без авторизации."""
     response = await client.delete(f"/api/v1/bookings/{booking_factory.id}")
-    assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+    assert response.status_code in [
+        status.HTTP_401_UNAUTHORIZED,
+        status.HTTP_403_FORBIDDEN,
+    ]
 
 
 @pytest.mark.asyncio

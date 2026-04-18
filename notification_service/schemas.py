@@ -42,4 +42,3 @@ class ReceiptPayload(BaseModel):
 
     # Дополнительно
     transaction_fee: Optional[str] = None
-

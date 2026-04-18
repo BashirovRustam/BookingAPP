@@ -45,7 +45,7 @@ class Payment(Base):
     paypal_capture_id: Mapped[Optional[str]] = mapped_column(String(64), unique=True)
 
     error_message: Mapped[Optional[str]] = mapped_column(String(255))
-    
+
     # Email пользователя для отправки чека
     user_email: Mapped[Optional[str]] = mapped_column(String(255))
 
