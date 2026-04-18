@@ -4,20 +4,25 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import StaticPool
+from httpx import AsyncClient, ASGITransport
 
 from app.Hotel.models import Base
 from app.Hotel.schemas import HotelCreate, HotelUpdate
 from app.services.HotelServices import create_hotel as service_create_hotel
 
 from app.Room.schemas import RoomCreate, RoomUpdate
+from app.Room.crud import create_room
 from app.services.RoomServices import create_room as service_create_room
 
-from app.User.models import User
+from app.User.models import User, RolesEnum
 from app.User import schemas
 from app.services.UserServices import create_user as service_create_user
 
 from app.BookingRooms.models import BookingRooms
 from app.Booking.models import Booking
+from app.User.User_auth.auth import create_access_token
+from app.main import app
+from app.db.base import get_session
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -155,7 +160,7 @@ async def multiple_rooms(db_session):
             hotel_id=1,
             services={"wifi": True},
         )
-        room = await room_crud.create_room(db_session, room_in)
+        room = await create_room(db_session, **room_in.model_dump())
         rooms.append(room)
 
     # Возвращаем список комнат, отсортированный по ID (как в БД)
@@ -223,6 +228,92 @@ async def booking_factory(
     booking = await service_create_booking(
         db_session, booking_in, user_id=user_factory.id
     )
-
-    assert booking is not None
+    
     return booking
+
+
+@pytest_asyncio.fixture
+async def client(db_session):
+    """
+    Фикстура для создания AsyncClient для API тестов с переопределением БД.
+    """
+    def override_get_session():
+        yield db_session
+    
+    app.dependency_overrides[get_session] = override_get_session
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def admin_user(db_session: AsyncSession):
+    """
+    Фикстура для создания пользователя с ролью ADMIN.
+    """
+    unique_email = f"admin_{uuid.uuid4().hex[:8]}@example.com"
+    user_in = schemas.UserCreate(
+        email=unique_email,
+        password="Admin1234$",
+        first_name="Admin",
+        last_name="User",
+        role=RolesEnum.ADMIN.value,
+    )
+    user = await service_create_user(db_session, user_in)
+    return user
+
+
+@pytest_asyncio.fixture
+async def regular_user(db_session: AsyncSession):
+    """
+    Фикстура для создания обычного пользователя.
+    """
+    unique_email = f"user_{uuid.uuid4().hex[:8]}@example.com"
+    user_in = schemas.UserCreate(
+        email=unique_email,
+        password="User1234$",
+        first_name="Regular",
+        last_name="User",
+        role=RolesEnum.USER.value,
+    )
+    user = await service_create_user(db_session, user_in)
+    return user
+
+
+@pytest.fixture
+def admin_token(admin_user):
+    """
+    Фикстура для создания JWT токена для admin пользователя.
+    """
+    token = create_access_token(
+        data={"sub": str(admin_user.id), "role": RolesEnum.ADMIN.value}
+    )
+    return token
+
+
+@pytest.fixture
+def user_token(regular_user):
+    """
+    Фикстура для создания JWT токена для обычного пользователя.
+    """
+    token = create_access_token(
+        data={"sub": str(regular_user.id), "role": RolesEnum.USER.value}
+    )
+    return token
+
+
+@pytest.fixture
+def admin_headers(admin_token):
+    """
+    Фикстура для создания заголовков с admin токеном.
+    """
+    return {"Authorization": f"Bearer {admin_token}"}
+
+
+@pytest.fixture
+def user_headers(user_token):
+    """
+    Фикстура для создания заголовков с user токеном.
+    """
+    return {"Authorization": f"Bearer {user_token}"}

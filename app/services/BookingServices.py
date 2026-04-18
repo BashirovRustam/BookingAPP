@@ -86,10 +86,19 @@ async def create_booking(
     Создать новое бронирование.
 
     Логика:
-    1. Проверка доступности комнаты на даты.
-    2. Расчёт totals_day и total_cost (с перестраховкой, если в схеме не заданы).
-    3. Сохранение в БД через CRUD.
+    1. Валидация дат.
+    2. Проверка доступности комнаты на даты.
+    3. Расчёт totals_day и total_cost (с перестраховкой, если в схеме не заданы).
+    4. Сохранение в БД через CRUD.
     """
+    today = date.today()
+    
+    if booking_in.date_from < today:
+        raise InvalidBookingDatesError("Нельзя бронировать прошедшие даты")
+    
+    if booking_in.date_to <= booking_in.date_from:
+        raise InvalidBookingDatesError("Дата окончания должна быть позже даты начала")
+
     if not await is_room_available(
         session=session,
         room_id=booking_in.room_id,

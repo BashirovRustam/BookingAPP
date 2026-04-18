@@ -119,22 +119,8 @@ async def create_booking(
     - выполняется проверка, что на указанный диапазон дат комната свободна.
     """
 
-    # 1. Проверяем, свободна ли комната на заданные даты
-    is_available = await booking_crud.is_room_available(
-        session=session,
-        room_id=booking_in.room_id,
-        date_from=booking_in.date_from,
-        date_to=booking_in.date_to,
-    )
-
-    if not is_available:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Извините, на данные даты комната уже забронирована",
-        )
-
-    # 2. Создаём бронирование
-    booking = await booking_crud.create_booking(
+    # 1. Создаём бронирование через сервис
+    booking = await service_create_booking(
         session=session,
         booking_in=booking_in,
         user_id=current_user.id,
@@ -224,7 +210,7 @@ async def update_booking(
     Если бронирование не найдено — вернуть HTTP 404.
     """
 
-    booking = await booking_crud.update_booking(
+    booking = await service_update_booking(
         session=session,
         booking_id=booking_id,
         booking_in=booking_in,

@@ -31,7 +31,7 @@ async def test_get_all_rooms_without_filters(db_session, multiple_rooms):
 
     # Act (Действие)
     # Вызываем тестируемую функцию БЕЗ фильтров
-    result = await crud.get_all_rooms(db_session, pagination, filters=None)
+    result = await get_all_rooms(db_session, pagination, filters=None)
 
     # Assert (Проверка)
     # Проверяем, что вернулись все 5 созданных комнат
@@ -160,7 +160,7 @@ async def test_get_rooms_pagination_first_page(db_session, multiple_rooms):
     pagination = Pagination(limit=2, offset=0)
 
     # Act
-    result = await crud.get_all_rooms(db_session, pagination, filters=None)
+    result = await get_all_rooms(db_session, pagination, filters=None)
 
     # Assert
     assert len(result) == 2
@@ -182,7 +182,7 @@ async def test_get_rooms_pagination_second_page(db_session, multiple_rooms):
     pagination = Pagination(limit=2, offset=2)
 
     # Act
-    result = await crud.get_all_rooms(db_session, pagination, filters=None)
+    result = await get_all_rooms(db_session, pagination, filters=None)
 
     # Assert
     assert len(result) == 2
@@ -204,7 +204,7 @@ async def test_get_rooms_pagination_last_page_partial(db_session, multiple_rooms
     pagination = Pagination(limit=10, offset=4)
 
     # Act
-    result = await crud.get_all_rooms(db_session, pagination, filters=None)
+    result = await get_all_rooms(db_session, pagination, filters=None)
 
     # Assert
     assert len(result) == 1  # Только одна комната осталась
@@ -224,7 +224,7 @@ async def test_get_rooms_pagination_beyond_data(db_session, multiple_rooms):
     pagination = Pagination(limit=10, offset=100)
 
     # Act
-    result = await crud.get_all_rooms(db_session, pagination, filters=None)
+    result = await get_all_rooms(db_session, pagination, filters=None)
 
     # Assert
     assert len(result) == 0
@@ -273,7 +273,7 @@ async def test_get_rooms_empty_database(db_session):
     pagination = Pagination(limit=10, offset=0)
 
     # Act
-    result = await crud.get_all_rooms(db_session, pagination, filters=None)
+    result = await get_all_rooms(db_session, pagination, filters=None)
 
     # Assert
     assert len(result) == 0
@@ -292,7 +292,7 @@ async def test_get_rooms_single_room(db_session, created_room_fix):
     pagination = Pagination(limit=10, offset=0)
 
     # Act
-    result = await crud.get_all_rooms(db_session, pagination, filters=None)
+    result = await get_all_rooms(db_session, pagination, filters=None)
 
     # Assert
     assert len(result) == 1
@@ -339,7 +339,7 @@ async def test_get_rooms_zero_limit(db_session, multiple_rooms):
     pagination = Pagination(limit=0, offset=0)
 
     # Act
-    result = await crud.get_all_rooms(db_session, pagination, filters=None)
+    result = await get_all_rooms(db_session, pagination, filters=None)
 
     # Assert
     assert len(result) == 0
