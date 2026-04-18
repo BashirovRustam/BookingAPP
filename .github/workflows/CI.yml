@@ -9,6 +9,14 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      POSTGRES_DB_NAME: test_db
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      SECRET_KEY: test_secret_key_for_ci_testing_only
+      ALGORITHM: HS256
 
     steps:
       # 1. Забираем код
