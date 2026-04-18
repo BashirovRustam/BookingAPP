@@ -107,7 +107,7 @@ async def verify_refresh_token(
 
         stmt = select(RefreshTokenSession).where(
             RefreshTokenSession.jti == jti,
-            RefreshTokenSession.revoked == False,
+            not RefreshTokenSession.revoked,
             RefreshTokenSession.expires_at > datetime.now(timezone.utc),
         )
         result = await session.execute(stmt)
@@ -124,7 +124,7 @@ async def revoke_refresh_token(
 ) -> bool:
     stmt = select(RefreshTokenSession).where(
         RefreshTokenSession.jti == jti,
-        RefreshTokenSession.revoked == False,
+        not RefreshTokenSession.revoked,
     )
     result = await session.execute(stmt)
     refresh_session = result.scalar_one_or_none()
@@ -143,7 +143,7 @@ async def revoke_all_user_refresh_tokens(
 ) -> None:
     stmt = select(RefreshTokenSession).where(
         RefreshTokenSession.user_id == user_id,
-        RefreshTokenSession.revoked == False,
+        not RefreshTokenSession.revoked,
     )
     result = await session.execute(stmt)
     refresh_sessions = result.scalars().all()

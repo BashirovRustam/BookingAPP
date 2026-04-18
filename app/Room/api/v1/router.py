@@ -4,7 +4,7 @@
 
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.Dependencies.filters import RoomFilter

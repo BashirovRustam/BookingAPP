@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException
 from notification_service.schemas import ReceiptPayload
 from notification_service.tasks import send_receipt_email
 

@@ -9,7 +9,7 @@ from payment_service.db import get_session
 from payment_service.handles_payment import handle_payment_failed
 from payment_service.dispatcher import EVENT_HANDLERS
 
-from payment_service.schemas import PaymentCreate, PaymentRead, PaymentCreateResponse
+from payment_service.schemas import PaymentCreate, PaymentCreateResponse
 from payment_service.models import Payment, PaymentStatus
 from payment_service.paypal_client import create_paypal_order, capture_paypal_order
 from sqlalchemy import select
@@ -145,11 +145,6 @@ async def payment_success(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/payments/success")
-async def payment_success():
-    return JSONResponse({"status": "success", "message": "Платеж одобрен"})
 
 
 @router.get("/payments/cancel")

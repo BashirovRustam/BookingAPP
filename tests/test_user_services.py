@@ -128,7 +128,7 @@ async def test_create_user_case_sensitive_email_duplicates(db_session: AsyncSess
 
     # Пытаемся создать с email в другом регистре
     email_uppercase = email.upper()
-    user2 = await create_user(
+    await create_user(
         db_session,
         UserCreate(
             email=email_uppercase,
@@ -194,8 +194,8 @@ async def test_get_user_by_email_case_sensitive(db_session: AsyncSession, user_f
     """Проверяем поведение при поиске с разным регистром."""
     created_user = user_factory
 
-    # Пытаемся найти с другим регистром
-    user = await get_user_by_email(db_session, created_user.email.upper())
+    # Пытаемся найти с другим регистре
+    await get_user_by_email(db_session, created_user.email.upper())
 
     # В зависимости от COLLATE может найтись или не найтись
 
@@ -310,7 +310,7 @@ async def test_update_user_email_duplicate_returns_none(db_session: AsyncSession
     email2 = f"user2_{uuid.uuid4().hex[:8]}@example.com"
 
     # Создаём двух пользователей
-    user1 = await create_user(
+    await create_user(
         db_session,
         UserCreate(
             email=email1,
@@ -320,7 +320,7 @@ async def test_update_user_email_duplicate_returns_none(db_session: AsyncSession
         ),
     )
 
-    user2 = await create_user(
+    await create_user(
         db_session,
         UserCreate(
             email=email2,

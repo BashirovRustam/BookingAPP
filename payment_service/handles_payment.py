@@ -136,7 +136,7 @@ async def handle_payment_completed(body: dict, session: AsyncSession):
 
 async def handle_payment_failed(body: dict, session: AsyncSession):
     """Обработка события: оплата отклонена или провалилась"""
-    print(f"🔍 Начало обработки failed события")
+    print("🔍 Начало обработки failed события")
     print(f"🔍 Полное тело вебхука: {body}")
 
     resource = body.get("resource", {})

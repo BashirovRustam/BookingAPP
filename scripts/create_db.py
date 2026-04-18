@@ -8,7 +8,6 @@ from typing import List
 from sqlalchemy import func, select
 
 from app.Booking.models import Booking, BookingStatus
-from app.BookingRooms.models import BookingRooms
 from app.Hotel.models import Hotel
 from app.Room.models import Room
 from app.User.models import User, RolesEnum
